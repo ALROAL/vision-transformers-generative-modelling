@@ -43,6 +43,7 @@ docutils==0.15.2
 dpath==2.0.6
 dulwich==0.20.32
 dvc==2.9.4
+einops==0.4.0
 entrypoints==0.4
 executing==0.8.2
 filelock==3.5.1
@@ -185,6 +186,7 @@ transformers==4.16.2
 typing_extensions==4.1.1
 uritemplate==4.1.1
 urllib3==1.26.8
+vit-pytorch==0.26.7
 voluptuous==0.12.2
 wandb==0.12.10
 wcwidth==0.2.5
@@ -195,3 +197,4 @@ yarl==1.7.2
 yaspin==2.1.0
 zc.lockfile==2.0
 zipp==3.7.0
+
