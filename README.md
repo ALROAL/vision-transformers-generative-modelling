@@ -1,9 +1,9 @@
-project_name
+Vision transformers for generative modeling
 ==============================
 
-A short description of the project.
+Project for 02460 Advanced Machine Learning 2022. About Attention-based architectures for Generative models
 
-Project Organization
+File Structure
 ------------
 
     ├── LICENSE
