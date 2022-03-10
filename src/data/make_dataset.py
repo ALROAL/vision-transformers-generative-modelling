@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST, CIFAR10
+from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch
 import pytorch_lightning as pl
@@ -60,6 +61,37 @@ class MNISTDataModule(pl.LightningDataModule):
     def predict_dataloader(self):
         return DataLoader(self.mnist_predict, batch_size=self.batch_size, num_workers= 4)
 
+class CIFARDataModule(pl.LightningDataModule):
+    def __init__(self, data_dir: str = _PATH_DATA, batch_size: int = 64):
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+
+    def prepare_data(self):
+        # download
+        CIFAR10(self.data_dir, train=True, download=True)
+        CIFAR10(self.data_dir, train=False, download=True)
+
+    def setup(self):
+        cifar_test = CIFAR10(self.data_dir, train=False,transform=transforms.ToTensor())
+        self.cifar_test = cifar_test
+
+        cifar_full = CIFAR10(self.data_dir, train=True,transform=transforms.ToTensor())
+        self.cifar_train, self.cifar_val = random_split(cifar_full, [45000, 5000],generator=torch.Generator().manual_seed(42))
+
+    def train_dataloader(self):
+        return DataLoader(self.cifar_train, batch_size=self.batch_size, num_workers= 4)
+
+    def val_dataloader(self):
+        return DataLoader(self.cifar_val, batch_size=self.batch_size, num_workers= 4)
+
+    def test_dataloader(self):
+        return DataLoader(self.cifar_test, batch_size=self.batch_size, num_workers= 4)
+
+    def predict_dataloader(self):
+        return DataLoader(self.cifar_predict, batch_size=self.batch_size, num_workers= 4)
+
+
 def main():
     """ Runs data processing scripts to turn raw data into
         cleaned data ready to be analyzed (saved in ../processed).
@@ -68,25 +100,8 @@ def main():
     logger.info('Downloading and loading raw data from torchvision')
     mnist = MNISTDataModule()
     mnist.prepare_data()
-
-    # train_dataset = MNIST(root=_PATH_DATA,download=True,train=True)
-    # test_dataset = MNIST(root=_PATH_DATA,download=True,train=False)
-
-    # logger.info('making dataloaders')
-
-    # train_data = train_dataset.data.to(float)/255
-    # train_target = train_dataset.targets
-    # test_data = test_dataset.data.to(float)/255
-    # test_target = test_dataset.targets
-
-    # train_dataset = dataset(train_data, train_target)
-    # test_dataset = dataset(test_data, test_target)
-
-    # train_loader = DataLoader(train_dataset,batch_size=64,shuffle=True)
-    # test_loader = DataLoader(test_dataset,batch_size=64,shuffle=False)
-
-    # torch.save(train_loader,"{}/train_loader.pth".format(_PATH_DATA),)
-    # torch.save(test_loader,"{}/test_loader.pth".format(_PATH_DATA))
+    cifar = CIFARDataModule()
+    cifar.prepare_data()
 
 
 if __name__ == '__main__':

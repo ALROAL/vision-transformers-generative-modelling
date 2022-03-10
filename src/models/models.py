@@ -4,19 +4,11 @@ from torch import nn, optim
 from torch.nn import functional as F
 from pytorch_lightning import LightningModule
 
+
+from vit_pytorch.vit import Transformer, PreNorm, FeedForward, Attention, pair
+
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
-
-import torchvision
-from torchsummary import summary
-
-import numpy as np
-from torch.optim import SGD, Adam
-from torch.utils.data import Dataset, DataLoader
-import os
-import matplotlib.pyplot as plt
-import cv2
-
 
 class VAE(LightningModule):
     def __init__(self):
@@ -90,90 +82,8 @@ class VAE(LightningModule):
     def configure_optimizers(self):
         return optim.Adam(self.parameters(),lr=self.lr)
 
-
-
-
-# helpers
-
-def pair(t):
-    return t if isinstance(t, tuple) else (t, t)
-
-# classes
-
-class PreNorm(nn.Module):
-    def __init__(self, dim, fn):
-        super().__init__()
-        self.norm = nn.LayerNorm(dim)
-        self.fn = fn
-    def forward(self, x, **kwargs):
-        return self.fn(self.norm(x), **kwargs)
-
-class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout = 0.):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
-        )
-    def forward(self, x):
-        return self.net(x)
-
-class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
-        super().__init__()
-        inner_dim = dim_head *  heads
-        project_out = not (heads == 1 and dim_head == dim)
-
-        self.heads = heads
-        self.scale = dim_head ** -0.5
-
-        self.attend = nn.Softmax(dim = -1)
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
-
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        ) if project_out else nn.Identity()
-
-    def forward(self, x):
-        qkv = self.to_qkv(x)
-
-        qkv = qkv.chunk(3, dim = -1)
-        
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
-        
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-        
-        attn = self.attend(dots)
-        
-        out = torch.matmul(attn, v)
-
-        out = rearrange(out, 'b h n d -> b n (h d)')
-
-        return self.to_out(out)
-
-class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
-        super().__init__()
-        self.layers = nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
-            ]))
-    def forward(self, x):
-        i = 0
-        for attn, ff in self.layers:
-            i+=1
-            x = attn(x) + x
-            x = ff(x) + x
-        return x
-
-class ViT(nn.Module):
-    def __init__(self, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+class ViT(LightningModule):
+    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.,lr = 3e-5):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
@@ -202,6 +112,8 @@ class ViT(nn.Module):
             nn.LayerNorm(dim),
             nn.Linear(dim, num_classes)
         )
+        self.lr = lr
+        self.save_hyperparameters()
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
@@ -209,9 +121,7 @@ class ViT(nn.Module):
 
         cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
         x = torch.cat((cls_tokens, x), dim=1)
-        
         x += self.pos_embedding[:, :(n + 1)]
-        
         x = self.dropout(x)
 
         x = self.transformer(x)
@@ -220,9 +130,28 @@ class ViT(nn.Module):
 
         x = self.to_latent(x)
         return self.mlp_head(x)
-    
-        return x
-    
+
+    def loss(self,y_hat,y):
+        return F.cross_entropy(y_hat,y)
+
+    def training_step(self,batch,batch_idx):
+        data, target = batch
+        output = self(data)
+        loss = self.loss(output,target)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self,batch,batch_idx):
+        data, target = batch
+        output = self(data)
+        loss = self.loss(output,target)
+        acc = (output.argmax(dim=1) == target).float().mean()
+        self.log("val_acc", acc)
+        self.log("val_loss", loss)
+        return loss
+
+    def configure_optimizers(self):
+        return optim.Adam(self.parameters(),lr=self.lr)
 
 class ViTAutoencoder(nn.Module):
     def __init__(self, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
