@@ -2,13 +2,13 @@
 -e git+ssh://git@github.com/RasmusJuul/Vision-transformers-for-generative-modeling.git@3d59145d69d4bda144db9b914794fe9a4de001ca#egg=src
 # -e .
 
-einops==0.4.0
-matplotlib==3.5.1
-numpy==1.22.2
-pytorch_lightning==1.5.10
-setuptools==59.5.0
-torch==1.10.2+cu113
-torchsummary==1.5.1
-torchvision==0.11.3+cu113
-wandb==0.12.10
-vit-pytorch==0.26.7
+einops
+matplotlib
+numpy
+pytorch_lightning
+setuptools
+torch
+torchsummary
+torchvision
+wandb
+vit-pytorch
