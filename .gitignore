@@ -97,3 +97,5 @@ target/
 /best_model
 /model_store
 /logs
+/lightning_logs
+/notebooks/testing.ipynb
