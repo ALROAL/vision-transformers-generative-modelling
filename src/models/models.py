@@ -1,14 +1,12 @@
 import torch
 import torch.utils.data
-from torch import nn, optim
-from torch.nn import functional as F
-from pytorch_lightning import LightningModule
-
-
-from vit_pytorch.vit import Transformer, PreNorm, FeedForward, Attention, pair
-
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
+from pytorch_lightning import LightningModule
+from torch import nn, optim
+from torch.nn import functional as F
+from vit_pytorch.vit import Attention, FeedForward, PreNorm, Transformer, pair
+
 
 class VAE(LightningModule):
     def __init__(self):
@@ -26,9 +24,9 @@ class VAE(LightningModule):
         return self.fc21(h1), self.fc22(h1)
 
     def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5*logvar)
+        std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        return mu + eps*std
+        return mu + eps * std
 
     def decode(self, z):
         h3 = F.relu(self.fc3(z))
@@ -46,7 +44,9 @@ class VAE(LightningModule):
         """
         recons_loss = F.mse_loss(recons_x, x)
 
-        KLD = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim = 1), dim = 0)
+        KLD = torch.mean(
+            -0.5 * torch.sum(1 + logvar - mu**2 - logvar.exp(), dim=1), dim=0
+        )
 
         return recons_loss + KLD
 
@@ -58,44 +58,69 @@ class VAE(LightningModule):
         :param current_device: (Int) Device to run the model
         :return: (Tensor)
         """
-        z = torch.randn(num_samples,
-                        self.latent_dim)
+        z = torch.randn(num_samples, self.latent_dim)
 
         z = z.to(current_device)
 
         samples = self.decode(z)
         return samples
 
-    def training_step(self,batch,batch_idx):
+    def training_step(self, batch, batch_idx):
         data, target = batch
         recons_x, x, mu, logvar = self(data)
         loss = self.elbo(recons_x, x, mu, logvar)
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self,batch,batch_idx):
+    def validation_step(self, batch, batch_idx):
         data, target = batch
         recons_x, x, mu, logvar = self(data)
         loss = self.elbo(recons_x, x, mu, logvar)
         self.log("val_loss", loss)
 
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(),lr=self.lr)
+        return optim.Adam(self.parameters(), lr=self.lr)
+
 
 class ViT(LightningModule):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.,lr = 3e-5):
+    def __init__(
+        self,
+        *,
+        image_size,
+        patch_size,
+        num_classes,
+        dim,
+        depth,
+        heads,
+        mlp_dim,
+        pool="cls",
+        channels=3,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+        lr=3e-5
+    ):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
-        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+        assert (
+            image_height % patch_height == 0 and image_width % patch_width == 0
+        ), "Image dimensions must be divisible by the patch size."
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
         patch_dim = channels * patch_height * patch_width
-        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+        assert pool in {
+            "cls",
+            "mean",
+        }, "pool type must be either cls (cls token) or mean (mean pooling)"
 
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
+            Rearrange(
+                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
+                p1=patch_height,
+                p2=patch_width,
+            ),
             nn.Linear(patch_dim, dim),
         )
 
@@ -108,10 +133,7 @@ class ViT(LightningModule):
         self.pool = pool
         self.to_latent = nn.Identity()
 
-        self.mlp_head = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
-        )
+        self.mlp_head = nn.Sequential(nn.LayerNorm(dim), nn.Linear(dim, num_classes))
         self.lr = lr
         self.save_hyperparameters()
 
@@ -119,71 +141,114 @@ class ViT(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
+        cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=b)
         x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, :(n + 1)]
+        x += self.pos_embedding[:, : (n + 1)]
         x = self.dropout(x)
 
         x = self.transformer(x)
 
-        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
 
         x = self.to_latent(x)
         return self.mlp_head(x)
 
-    def loss(self,y_hat,y):
-        return F.cross_entropy(y_hat,y)
+    def loss(self, y_hat, y):
+        return F.cross_entropy(y_hat, y)
 
-    def training_step(self,batch,batch_idx):
+    def training_step(self, batch, batch_idx):
         data, target = batch
         output = self(data)
-        loss = self.loss(output,target)
+        loss = self.loss(output, target)
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self,batch,batch_idx):
+    def validation_step(self, batch, batch_idx):
         data, target = batch
         output = self(data)
-        loss = self.loss(output,target)
+        loss = self.loss(output, target)
         acc = (output.argmax(dim=1) == target).float().mean()
         self.log("val_acc", acc)
         self.log("val_loss", loss)
         return loss
 
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        output = self(data)
+        loss = self.loss(output, target)
+        acc = (output.argmax(dim=1) == target).float().mean()
+        self.log("test_acc", acc)
+        self.log("test_loss", loss)
+        return {"loss": loss, "acc": acc}
+
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(),lr=self.lr)
+        return optim.Adam(self.parameters(), lr=self.lr)
+
 
 class ViTAutoencoder(nn.Module):
-    def __init__(self, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(
+        self,
+        image_size,
+        patch_size,
+        num_classes,
+        dim,
+        depth,
+        heads,
+        mlp_dim,
+        pool="cls",
+        channels=3,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+    ):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
-        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+        assert (
+            image_height % patch_height == 0 and image_width % patch_width == 0
+        ), "Image dimensions must be divisible by the patch size."
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
         patch_dim = channels * patch_height * patch_width
-        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
-        
+        assert pool in {
+            "cls",
+            "mean",
+        }, "pool type must be either cls (cls token) or mean (mean pooling)"
+
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, dim))
         self.decoder_pos_embedding = nn.Parameter(torch.randn(1, num_patches, dim))
 
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width).to(device),
+            Rearrange(
+                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
+                p1=patch_height,
+                p2=patch_width,
+            ).to(device),
             nn.Linear(patch_dim, dim).to(device),
         )
         self.back_to_img = nn.Sequential(
             nn.Linear(dim, patch_dim).to(device),
-            Rearrange('b (n1 n2) (p1 p2 c) -> b c (n1 p1) (n2 p2)', p1 = patch_height, p2 = patch_width, n1=(image_height // patch_height), n2=image_width // patch_width).to(device)
+            Rearrange(
+                "b (n1 n2) (p1 p2 c) -> b c (n1 p1) (n2 p2)",
+                p1=patch_height,
+                p2=patch_width,
+                n1=(image_height // patch_height),
+                n2=image_width // patch_width,
+            ).to(device),
         )
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, dim))
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.encoder_transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
-        #For now we use the same transformer architecture for both the encoder and the decoder, but this could change.
-        self.decoder_transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
-        
+        self.encoder_transformer = Transformer(
+            dim, depth, heads, dim_head, mlp_dim, dropout
+        )
+        # For now we use the same transformer architecture for both the encoder and the decoder, but this could change.
+        self.decoder_transformer = Transformer(
+            dim, depth, heads, dim_head, mlp_dim, dropout
+        )
+
     def encoder(self, img):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
@@ -195,17 +260,17 @@ class ViTAutoencoder(nn.Module):
         x = self.encoder_transformer(x)
 
         return x
-    
+
     def decoder(self, x):
-        
+
         x += self.decoder_pos_embedding
 
         x = self.decoder_transformer(x)
-        
+
         x = self.dropout(x)
-        
+
         imgs = self.back_to_img(x)
-    
+
         return imgs
 
     def forward(self, x):
