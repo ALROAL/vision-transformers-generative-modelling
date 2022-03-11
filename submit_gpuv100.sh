@@ -1,18 +1,26 @@
 #!/bin/sh
-#BSUB -q hpc
+#BSUB -q gpuv100
 #BSUB -J test
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -W 00:15
-#BSUB -R "rusage[mem=32GB]"
-##BSUB -R "select[gpu32gb]"
+#BSUB -W 04:00
+#BSUB -R "rusage[mem=8GB]"
+#BSUB -R "select[gpu32gb]"
 #BSUB -o ../outputs/gpu_%J.out
 #BSUB -e ../outputs/gpu_%J.err
 # -- end of LSF options --
 
+# nvidia-smi
+# Load the cuda module
+# module load cuda/10.2
+
+# /appl/cuda/10.2/samples/NVIDIA_CUDA-10.2_Samples/bin/x86_64/linux/release/deviceQuery
+
 module load python3
 source ../envs/aml/bin/activate
+
+
 
 # Name - Model - Epochs
 
