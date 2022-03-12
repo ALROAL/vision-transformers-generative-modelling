@@ -14,5 +14,5 @@ source aml/bin/activate
 
 # Name - Model - Epochs
 
-python3 main.py Classifier_test1 Classifier 2 >| outputs/class_test.out 2>| error/class_test.err
+python3 main.py Classifier_200 Classifier 200 >| outputs/class.out 2>| error/class.err
 

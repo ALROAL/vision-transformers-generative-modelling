@@ -17,11 +17,11 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
             image_size=32,
             patch_size=8,
             num_classes=10,
-            dim=128,
-            depth=12,
-            heads=8,
-            mlp_dim=1024,
-            dropout=0.1,
+            dim=1024,
+            depth=10,
+            heads=16,
+            mlp_dim=2048,
+            dropout=0.2,
             emb_dropout=0.1,
         )
 

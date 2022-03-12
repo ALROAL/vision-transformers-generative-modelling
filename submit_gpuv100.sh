@@ -1,12 +1,12 @@
 #!/bin/sh
 #BSUB -q gpuv100
-#BSUB -J test
+#BSUB -J classifier
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 04:00
 #BSUB -R "rusage[mem=8GB]"
-#BSUB -R "select[gpu32gb]"
+#BSUB -R "select[gpu16gb]"
 #BSUB -o ../outputs/gpu_%J.out
 #BSUB -e ../outputs/gpu_%J.err
 # -- end of LSF options --
@@ -17,12 +17,11 @@
 
 # /appl/cuda/10.2/samples/NVIDIA_CUDA-10.2_Samples/bin/x86_64/linux/release/deviceQuery
 
-module load python3
-source ../envs/aml/bin/activate
+source aml/bin/activate
 
 
 
 # Name - Model - Epochs
 
-python3 main.py Classifier_test1 Classifier 2 >| ../outputs/class_test.out 2>| ../error/class_test.err
+python3 main.py Classifier_200 Classifier 200 >| ../outputs/class.out 2>| ../error/class.err
 
