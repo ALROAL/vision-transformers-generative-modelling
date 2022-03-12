@@ -2,7 +2,7 @@ import logging
 
 import torch
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
@@ -18,14 +18,14 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
             patch_size=8,
             num_classes=10,
             dim=1024,
-            depth=10,
+            depth=12,
             heads=16,
             mlp_dim=2048,
-            dropout=0.2,
-            emb_dropout=0.1,
+            dropout=0.3,
+            emb_dropout=0.3,
         )
 
-    cifar = CIFARDataModule(batch_size=512)
+    cifar = CIFARDataModule(batch_size=1024)
     cifar.prepare_data()
     cifar.setup()
 
@@ -33,8 +33,9 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
         dirpath=_PATH_MODELS, monitor="val_loss", mode="min", save_top_k=3
     )
     early_stopping_callback = EarlyStopping(
-        monitor="val_loss", patience=5, verbose=True, mode="min"
+        monitor="val_loss", patience=10, verbose=True, mode="min"
     )
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     wandb_logger = WandbLogger(project="ViT-VAE", name=name)
 
@@ -46,7 +47,7 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
         precision=16,
         deterministic=True,
         default_root_dir=_PROJECT_ROOT,
-        callbacks=[checkpoint_callback, early_stopping_callback],
+        callbacks=[checkpoint_callback, early_stopping_callback, lr_monitor],
         auto_lr_find=False,
         auto_scale_batch_size=False,
         auto_select_gpus=True,
