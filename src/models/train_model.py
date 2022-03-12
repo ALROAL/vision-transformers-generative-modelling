@@ -33,7 +33,7 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
         dirpath=_PATH_MODELS, monitor="val_loss", mode="min", save_top_k=3
     )
     early_stopping_callback = EarlyStopping(
-        monitor="val_loss", patience=10, verbose=True, mode="min"
+        monitor="val_loss", patience=15, verbose=True, mode="min"
     )
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
