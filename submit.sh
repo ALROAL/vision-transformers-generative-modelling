@@ -9,8 +9,8 @@
 #BSUB -e outputs/gpu_%J.err
 # -- end of LSF options --
 
-module load python3
-source ../envs/aml/bin/activate
+#module load python3/3.9.10
+source aml/bin/activate
 
 # Name - Model - Epochs
 

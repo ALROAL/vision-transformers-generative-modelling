@@ -25,7 +25,8 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
             emb_dropout=0.1,
         )
 
-    cifar = CIFARDataModule(batch_size=128)
+    cifar = CIFARDataModule(batch_size=512)
+    cifar.prepare_data()
     cifar.setup()
 
     checkpoint_callback = ModelCheckpoint(
@@ -47,7 +48,7 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
         default_root_dir=_PROJECT_ROOT,
         callbacks=[checkpoint_callback, early_stopping_callback],
         auto_lr_find=False,
-        auto_scale_batch_size=True,
+        auto_scale_batch_size=False,
         auto_select_gpus=True,
         log_every_n_steps=25,
         logger=wandb_logger,

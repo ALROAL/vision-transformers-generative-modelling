@@ -12,3 +12,4 @@ torchsummary
 torchvision
 wandb
 vit-pytorch
+six
