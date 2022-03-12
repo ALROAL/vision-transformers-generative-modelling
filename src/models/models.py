@@ -182,30 +182,13 @@ class ViT(LightningModule):
         return {"loss": loss, "acc": acc}
 
     def configure_optimizers(self):
-		optimizer = optim.Adam(self.parameters(), lr=self.lr)
-		lr_scheduler = optim.ReduceLROnPlateau(optimizer, patience = 3)
-		lr_scheduler_config = {
-			# REQUIRED: The scheduler instance
-			"scheduler": lr_scheduler,
-			# The unit of the scheduler's step size, could also be 'step'.
-			# 'epoch' updates the scheduler on epoch end whereas 'step'
-			# updates it after a optimizer update.
-			"interval": "epoch",
-			# How many epochs/steps should pass between calls to
-			# `scheduler.step()`. 1 corresponds to updating the learning
-			# rate after every epoch/step.
-			"frequency": 1,
-			# Metric to to monitor for schedulers like `ReduceLROnPlateau`
-			"monitor": "val_loss",
-			# If set to `True`, will enforce that the value specified 'monitor'
-			# is available when the scheduler is updated, thus stopping
-			# training if not found. If set to `False`, it will only produce a warning
-			"strict": True,
-			# If using the `LearningRateMonitor` callback to monitor the
-			# learning rate progress, this keyword can be used to specify
-			# a custom logged name
-			"name": None,
-		}
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        lr_scheduler = optim.ReduceLROnPlateau(optimizer, patience = 3)
+        lr_scheduler_config = {"scheduler": lr_scheduler,
+                               "interval": "epoch",
+                               "frequency": 1,
+                               "monitor": "val_loss",
+                               "strict": True}
 		
         return {"optimizer": optimizer,
 				"lr_scheduler": lr_scheduler_config}
