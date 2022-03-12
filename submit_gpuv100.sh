@@ -7,8 +7,8 @@
 #BSUB -W 04:00
 #BSUB -R "rusage[mem=8GB]"
 #BSUB -R "select[gpu16gb]"
-#BSUB -o ../outputs/gpu_%J.out
-#BSUB -e ../outputs/gpu_%J.err
+#BSUB -o outputs/gpu_%J.out
+#BSUB -e outputs/gpu_%J.err
 # -- end of LSF options --
 
 # nvidia-smi
@@ -23,5 +23,5 @@ source aml/bin/activate
 
 # Name - Model - Epochs
 
-python3 main.py Classifier_200 Classifier 200 >| ../outputs/class.out 2>| ../error/class.err
+python3 main.py Classifier_200 Classifier 200 >| outputs/class.out 2>| error/class.err
 
