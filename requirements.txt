@@ -1,6 +1,6 @@
 # local package
--e git+ssh://git@github.com/RasmusJuul/Vision-transformers-for-generative-modeling.git@3d59145d69d4bda144db9b914794fe9a4de001ca#egg=src
-# -e .
+#-e git+ssh://git@github.com/RasmusJuul/Vision-transformers-for-generative-modeling.git@3d59145d69d4bda144db9b914794fe9a4de001ca#egg=src
+-e .
 
 einops
 matplotlib

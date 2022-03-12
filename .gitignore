@@ -92,6 +92,7 @@ target/
 # Logging
 /wandb
 /outputs
+/error
 
 /models
 /best_model
@@ -99,3 +100,4 @@ target/
 /logs
 /lightning_logs
 /notebooks/testing.ipynb
+/aml
