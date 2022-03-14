@@ -19,13 +19,19 @@
 
 source aml/bin/activate
 
-# Name - Model - Epochs
+n="nproc --all"
 
-# Name : wandb name
-# Model : Classifier or ViTVAE
-# Epochs : number of max epochs
+# Options
+# --name : Name for wandb
+# --model-type : Model type to train either ViTVAE or Classifier
+# --max-epochs : Number of max epochs
+# --num-workers : Number of threads use in loading data (should almost always be $n)
+# --dim : Last dimension of output tensor after linear transformation
+# --depth : Number of Transformer blocks
+# --heads : Number of heads in Multi-head Attention layer
+# --mlp_dim : Dimension of the MLP (FeedForward) layer
 
-# python3 main.py Classifier_200 Classifier 200 >| outputs/class.out 2>| error/class.err
+# python3 main.py --name Classifier --model-type Classifier --max-epochs 200 --num-workers $n >| outputs/class.out 2>| error/class.err
 
-python3 main.py ViTVAE ViTVAE 200 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers $n >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 

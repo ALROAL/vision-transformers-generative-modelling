@@ -11,29 +11,37 @@ from src.data.make_dataset import CIFARDataModule, MNISTDataModule
 from src.models.models import ViT, ViTVAE
 
 
-def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 10):
+def main(name: str = "test",
+         model_type: str = "Classifier",
+         max_epochs: int = 10,
+         num_workers: int = 0,
+         dim: int = 1024,
+         depth: int = 12,
+         heads: int = 16,
+         mlp_dim: int = 2048):
+
     if model_type == "Classifier":
         model = ViT(
             image_size=32,
             patch_size=8,
             num_classes=10,
-            dim=1024,
-            depth=12,
-            heads=16,
-            mlp_dim=2048,
-            dropout=0.3,
+            dim=dim,
+            depth=depth,
+            heads=heads,
+            mlp_dim=mlp_dim,
+            dropout=0.5,
             emb_dropout=0.3,
         )
     if model_type == "ViTVAE":
         model = ViTVAE(
             image_size=32,
             patch_size=8,
-            dim=1024,
-            depth=12,
-            heads=16,
-            mlp_dim=2048)
+            dim=dim,
+            depth=depth,
+            heads=heads,
+            mlp_dim=mlp_dim)
 
-    cifar = CIFARDataModule(batch_size=1024)
+    cifar = CIFARDataModule(batch_size=1024,num_workers=num_workers)
     cifar.prepare_data()
     cifar.setup()
     
