@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from torchvision.datasets import CIFAR10, MNIST
-import numpy as np
-import os
+
 from src import _PATH_DATA
 
 
-
 class MNISTDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0):
+    def __init__(
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+    ):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -46,20 +48,42 @@ class MNISTDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.mnist_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.mnist_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def test_dataloader(self):
-        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.mnist_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def predict_dataloader(self):
-        return DataLoader(self.mnist_predict, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.mnist_predict,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
 
 class CIFARDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0):
+    def __init__(
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+    ):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -82,16 +106,36 @@ class CIFARDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(self.cifar_train, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.cifar_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.cifar_val, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.cifar_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def test_dataloader(self):
-        return DataLoader(self.cifar_test, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.cifar_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def predict_dataloader(self):
-        return DataLoader(self.cifar_predict, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.cifar_predict,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
 
 def main():

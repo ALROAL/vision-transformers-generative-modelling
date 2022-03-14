@@ -2,7 +2,11 @@ import logging
 
 import torch
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.callbacks import (
+    EarlyStopping,
+    LearningRateMonitor,
+    ModelCheckpoint,
+)
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
@@ -11,14 +15,16 @@ from src.data.make_dataset import CIFARDataModule, MNISTDataModule
 from src.models.models import ViT, ViTVAE
 
 
-def main(name: str = "test",
-         model_type: str = "Classifier",
-         max_epochs: int = 10,
-         num_workers: int = 0,
-         dim: int = 1024,
-         depth: int = 12,
-         heads: int = 16,
-         mlp_dim: int = 2048):
+def main(
+    name: str = "test",
+    model_type: str = "Classifier",
+    max_epochs: int = 10,
+    num_workers: int = 0,
+    dim: int = 1024,
+    depth: int = 12,
+    heads: int = 16,
+    mlp_dim: int = 2048,
+):
 
     if model_type == "Classifier":
         model = ViT(
@@ -39,19 +45,24 @@ def main(name: str = "test",
             dim=dim,
             depth=depth,
             heads=heads,
-            mlp_dim=mlp_dim)
+            mlp_dim=mlp_dim,
+        )
 
-    cifar = CIFARDataModule(batch_size=1024,num_workers=num_workers)
+    cifar = CIFARDataModule(batch_size=1024, num_workers=num_workers)
     cifar.prepare_data()
     cifar.setup()
-    
+
     checkpoint_callback = ModelCheckpoint(
-        dirpath=_PATH_MODELS+"/"+model_type, monitor="val_loss", mode="min", save_top_k=1
+        dirpath=_PATH_MODELS + "/" + model_type,
+        monitor="val_loss",
+        mode="min",
+        save_top_k=1,
+        auto_insert_metric_name=True,
     )
     early_stopping_callback = EarlyStopping(
-        monitor="val_loss", patience=15, verbose=True, mode="min"
+        monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
     )
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
     wandb_logger = WandbLogger(project="ViT-VAE", name=name)
 

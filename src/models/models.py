@@ -7,6 +7,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from vit_pytorch.vit import Attention, FeedForward, PreNorm, Transformer, pair
 
+
 class ViT(LightningModule):
     def __init__(
         self,
@@ -108,25 +109,41 @@ class ViT(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience = 6)
-        lr_scheduler_config = {"scheduler": lr_scheduler,
-                               "interval": "epoch",
-                               "frequency": 1,
-                               "monitor": "val_loss",
-                               "strict": True}
-		
-        return {"optimizer": optimizer,
-				"lr_scheduler": lr_scheduler_config}
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 
 class ViTVAE(LightningModule):
-    def __init__(self, image_size, patch_size, dim, depth, heads, mlp_dim, channels=3, dim_head=64,
-                 dropout=0., emb_dropout=0., kl_weight=1e-5, lr=1e-3):
+    def __init__(
+        self,
+        image_size,
+        patch_size,
+        dim,
+        depth,
+        heads,
+        mlp_dim,
+        channels=3,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+        kl_weight=1e-5,
+        lr=1e-3,
+    ):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
-        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+        assert (
+            image_height % patch_height == 0 and image_width % patch_width == 0
+        ), "Image dimensions must be divisible by the patch size."
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
         patch_dim = channels * patch_height * patch_width
@@ -140,19 +157,32 @@ class ViTVAE(LightningModule):
         self.decoder_pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
 
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_height, p2=patch_width),
+            Rearrange(
+                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
+                p1=patch_height,
+                p2=patch_width,
+            ),
             nn.Linear(patch_dim, dim),
         )
         self.back_to_img = nn.Sequential(
             nn.Linear(dim, channels * image_height * image_width),
-            Rearrange('b 1 (p1 p2 c) -> b c p1 p2', c=channels, p1=image_height, p2=image_width)
+            Rearrange(
+                "b 1 (p1 p2 c) -> b c p1 p2",
+                c=channels,
+                p1=image_height,
+                p2=image_width,
+            ),
         )
 
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.encoder_transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        self.encoder_transformer = Transformer(
+            dim, depth, heads, dim_head, mlp_dim, dropout
+        )
         # For now we use the same transformer architecture for both the encoder and the decoder, but this could change.
-        self.decoder_transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        self.decoder_transformer = Transformer(
+            dim, depth, heads, dim_head, mlp_dim, dropout
+        )
 
         self.lr = lr
         self.kl_weight = kl_weight
@@ -162,10 +192,10 @@ class ViTVAE(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        log_var_tokens = repeat(self.log_var_token, '() n d -> b n d', b=b)
+        log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
 
-        mean_tokens = repeat(self.mean_token, '() n d -> b n d', b=b)
+        mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
         x = torch.cat((mean_tokens, x), dim=1)
 
         x += self.pos_embedding
@@ -190,7 +220,7 @@ class ViTVAE(LightningModule):
         eps = torch.randn_like(std)
 
         z = eps.mul(std).add_(mean)
-        z = rearrange(z, 'b d -> b 1 d')
+        z = rearrange(z, "b d -> b 1 d")
         return z
 
     def forward(self, img):
@@ -246,11 +276,12 @@ class ViTVAE(LightningModule):
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
-        lr_scheduler_config = {"scheduler": lr_scheduler,
-                               "interval": "epoch",
-                               "frequency": 1,
-                               "monitor": "val_loss",
-                               "strict": False}
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": False,
+        }
 
-        return {"optimizer": optimizer,
-                "lr_scheduler": lr_scheduler_config}
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
