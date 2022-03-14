@@ -7,8 +7,8 @@ from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
-from src.data.make_dataset import CIFARDataModule, MNISTDataModule, dataset
-from src.models.models import VAE, ViT
+from src.data.make_dataset import CIFARDataModule, MNISTDataModule
+from src.models.models import ViT, ViTVAE
 
 
 def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 10):
@@ -24,6 +24,14 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
             dropout=0.3,
             emb_dropout=0.3,
         )
+    if model_type == "ViTVAE":
+        model = ViTVAE(
+            image_size=32,
+            patch_size=8,
+            dim=1024,
+            depth=12,
+            heads=16,
+            mlp_dim=2048)
 
     cifar = CIFARDataModule(batch_size=1024)
     cifar.prepare_data()
