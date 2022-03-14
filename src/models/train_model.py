@@ -36,9 +36,9 @@ def main(name: str = "test", model_type: str = "Classifier", max_epochs: int = 1
     cifar = CIFARDataModule(batch_size=1024)
     cifar.prepare_data()
     cifar.setup()
-
+    
     checkpoint_callback = ModelCheckpoint(
-        dirpath=_PATH_MODELS, monitor="val_loss", mode="min", save_top_k=3
+        dirpath=_PATH_MODELS+"/"+model_type, monitor="val_loss", mode="min", save_top_k=1
     )
     early_stopping_callback = EarlyStopping(
         monitor="val_loss", patience=15, verbose=True, mode="min"
