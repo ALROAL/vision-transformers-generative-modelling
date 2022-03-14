@@ -250,7 +250,7 @@ class ViTVAE(LightningModule):
                                "interval": "epoch",
                                "frequency": 1,
                                "monitor": "val_loss",
-                               "strict": True}
+                               "strict": False}
 
         return {"optimizer": optimizer,
                 "lr_scheduler": lr_scheduler_config}
