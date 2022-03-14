@@ -409,5 +409,20 @@ class ViTVAE(LightningModule):
         loss = self.elbo(recons_x, x, mu, logvar)
         self.log("val_loss", loss)
 
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        recons_x, x, mu, logvar = self(data)
+        loss = self.elbo(recons_x, x, mu, logvar)
+        self.log("test_loss", loss)
+
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
+        lr_scheduler_config = {"scheduler": lr_scheduler,
+                               "interval": "epoch",
+                               "frequency": 1,
+                               "monitor": "val_loss",
+                               "strict": True}
+
+        return {"optimizer": optimizer,
+                "lr_scheduler": lr_scheduler_config}
