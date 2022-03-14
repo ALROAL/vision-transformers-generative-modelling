@@ -389,12 +389,11 @@ class ViTVAE(LightningModule):
         """
         Computes the VAE loss function.
         """
-        recons_loss = F.mse_loss(recons_x, x)
-
-        KLD = torch.mean(
-            -0.5 * torch.sum(1 + logvar - mu**2 - logvar.exp(), dim=1), dim=0
-        )
-        return recons_loss + self.kl_weight*KLD
+        kl_divergence = 0.5 * torch.sum(-1 - logvar + mu.pow(2) + logvar.exp())
+        MSE = nn.MSELoss(size_average=True)
+        mse = MSE(recons_x, x)
+        mse + 0.00001 * kl_divergence
+        return mse + self.kl_weight * kl_divergence
 
     def training_step(self, batch, batch_idx):
         data, target = batch
