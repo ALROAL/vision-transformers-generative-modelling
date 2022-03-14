@@ -7,7 +7,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
-from src.data.make_dataset import CIFARDataModule, MNISTDataModule, dataset
+from src.data.make_dataset import CIFARDataModule, MNISTDataModule
 from src.models.models import ViT, ViTVAE
 
 
