@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -q gpuv100
-#BSUB -J classifier
+#BSUB -J ViTVAE
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
@@ -19,9 +19,13 @@
 
 source aml/bin/activate
 
-
-
 # Name - Model - Epochs
 
-python3 main.py Classifier_200 Classifier 200 >| outputs/class.out 2>| error/class.err
+# Name : wandb name
+# Model : Classifier or ViTVAE
+# Epochs : number of max epochs
+
+# python3 main.py Classifier_200 Classifier 200 >| outputs/class.out 2>| error/class.err
+
+python3 main.py ViTVAE_test ViTVAE 200 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 
