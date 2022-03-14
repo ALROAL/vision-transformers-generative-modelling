@@ -156,6 +156,7 @@ class ViTVAE(LightningModule):
 
         self.lr = lr
         self.kl_weight = kl_weight
+        self.save_hyperparameters()
 
     def encoder(self, img):
         x = self.to_patch_embedding(img)
