@@ -7,6 +7,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from vit_pytorch.vit import Attention, FeedForward, PreNorm, Transformer, pair
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class VAE(LightningModule):
     def __init__(self):
@@ -286,3 +287,127 @@ class ViTAutoencoder(nn.Module):
         x = self.encoder(x)
         x = self.decoder(x)
         return x
+
+
+class ViTVAE(LightningModule):
+    def __init__(self, image_size, patch_size, dim, depth, heads, mlp_dim, channels=3, dim_head=64,
+                 dropout=0., emb_dropout=0., kl_weight=1e-5, lr=1e-3):
+        super().__init__()
+        image_height, image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+
+        num_patches = (image_height // patch_height) * (image_width // patch_width)
+        patch_dim = channels * patch_height * patch_width
+
+        self.dim = dim
+        self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+
+        self.decoder_pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_height, p2=patch_width),
+            nn.Linear(patch_dim, dim).to(device),
+        )
+        self.back_to_img = nn.Sequential(
+            nn.Linear(dim, channels * image_height * image_width),
+            Rearrange('b 1 (p1 p2 c) -> b c p1 p2', c=channels, p1=image_height, p2=image_width)
+        )
+
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.encoder_transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        # For now we use the same transformer architecture for both the encoder and the decoder, but this could change.
+        self.decoder_transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+
+        self.lr = lr
+        self.kl_weight = kl_weight
+
+    def encoder(self, img):
+        x = self.to_patch_embedding(img)
+        b, n, _ = x.shape
+
+        log_var_tokens = repeat(self.log_var_token, '() n d -> b n d', b=b)
+        x = torch.cat((log_var_tokens, x), dim=1)
+
+        mean_tokens = repeat(self.mean_token, '() n d -> b n d', b=b)
+        x = torch.cat((mean_tokens, x), dim=1)
+
+        x += self.pos_embedding
+
+        x = self.dropout(x)
+
+        x = self.encoder_transformer(x)
+
+        return x
+
+    def decoder(self, x):
+        x = self.decoder_transformer(x)
+
+        x = self.dropout(x)
+
+        imgs = self.back_to_img(x)
+
+        return imgs
+
+    def reparameterize(self, mean, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+
+        z = eps.mul(std).add_(mean)
+        z = rearrange(z, 'b d -> b 1 d')
+        return z
+
+    def forward(self, img):
+        x = self.encoder(img)
+        x += self.decoder_pos_embedding
+        mean = x[:, 0]
+        log_var = x[:, 1]
+        z = self.reparameterize(mean, log_var)
+        out = self.decoder(z)
+
+        return img, out, mean, log_var
+
+    def sample(self, num_samples):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :param current_device: (Int) Device to run the model
+        :return: (Tensor)
+        """
+        z = torch.randn(num_samples, 1, self.dim)
+
+        samples = self.decode(z)
+        return samples
+
+    def elbo(self, recons_x, x, mu, logvar):
+        """
+        Computes the VAE loss function.
+        """
+        recons_loss = F.mse_loss(recons_x, x)
+
+        KLD = torch.mean(
+            -0.5 * torch.sum(1 + logvar - mu**2 - logvar.exp(), dim=1), dim=0
+        )
+        return recons_loss + self.kl_weight*KLD
+
+    def training_step(self, batch, batch_idx):
+        data, target = batch
+        recons_x, x, mu, logvar = self(data)
+        loss = self.elbo(recons_x, x, mu, logvar)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        recons_x, x, mu, logvar = self(data)
+        loss = self.elbo(recons_x, x, mu, logvar)
+        self.log("val_loss", loss)
+
+    def configure_optimizers(self):
+        return optim.Adam(self.parameters(), lr=self.lr)

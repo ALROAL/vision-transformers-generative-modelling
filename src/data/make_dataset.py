@@ -6,9 +6,62 @@ import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from torchvision.datasets import CIFAR10, MNIST
-
+import numpy as np
+import cv2
+import os
 from src import _PATH_DATA
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+class CustomDataset(Dataset):
+    def __init__(self, dataset_path=os.path.join(_PATH_DATA, "raw", "cifar10"), train=True, category=None, return_label=True, aug=None):
+        if train:
+            dataset_path = os.path.normpath(dataset_path + "/train")
+        else:
+            dataset_path = os.path.normpath(dataset_path + "/test")
+
+        self.x = []
+        self.y = []
+        self.return_label = return_label
+        self.aug = aug
+        n_class = 0
+        for cat_folder in os.listdir(dataset_path):
+            if category:
+                if category == cat_folder:
+                    for img in os.listdir(os.path.join(dataset_path, cat_folder)):
+                        self.x.append(os.path.join(dataset_path, cat_folder, img))
+                        self.y.append(n_class)
+            else:
+                for img in os.listdir(os.path.join(dataset_path, cat_folder)):
+                    self.x.append(os.path.join(dataset_path, cat_folder, img))
+                    self.y.append(n_class)
+
+            n_class += 1
+
+        self.x = np.array(self.x)
+        self.y = np.array(self.y)
+
+    def __len__(self):
+        return len(self.x)
+
+    def collate_fn(self, batch):
+        ims, classes = list(zip(*batch))
+        if self.aug:
+            ims = self.aug.augment_images(images=ims)
+
+        ims = (torch.tensor(np.array(ims)).permute(0, 3, 1, 2) / 255).to(device)
+
+        return ims, torch.tensor(classes).type(torch.LongTensor).to(device) if self.return_label else ims
+
+    def __getitem__(self, ix):
+        return cv2.imread(self.x[ix]), self.y[ix]
+
+
+class CustomDataloader(DataLoader):
+    def __init__(self, dataset_path=os.path.join(_PATH_DATA, "raw", "cifar10"), train=True, category=None,
+                 return_label=True, aug=None, batch_size=32, shuffle=True):
+        self.dataset = CustomDataset(dataset_path, train=train, category=category, return_label=return_label, aug=aug)
+        super().__init__(self.dataset, batch_size, shuffle, collate_fn=self.dataset.collate_fn)
 
 class dataset:
     def __init__(self, data, target):
