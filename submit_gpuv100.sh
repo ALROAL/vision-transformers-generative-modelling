@@ -4,9 +4,9 @@
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -W 04:00
+#BSUB -W 01:00
 #BSUB -R "rusage[mem=8GB]"
-#BSUB -R "select[gpu16gb]"
+##BSUB -R "select[gpu32gb]"
 #BSUB -o outputs/gpu_%J.out
 #BSUB -e outputs/gpu_%J.err
 # -- end of LSF options --
@@ -27,5 +27,5 @@ source aml/bin/activate
 
 # python3 main.py Classifier_200 Classifier 200 >| outputs/class.out 2>| error/class.err
 
-python3 main.py ViTVAE_test ViTVAE 200 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py ViTVAE ViTVAE 200 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 
