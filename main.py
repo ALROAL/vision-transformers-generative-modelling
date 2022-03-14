@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 
-# from src.models.train_model import main as train
+from src.models.train_model import main as train
 
 
 

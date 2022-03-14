@@ -1,7 +1,7 @@
 #!/bin/sh
 #BSUB -q gpuv100
 #BSUB -J ViTVAE
-#BSUB -n 4
+#BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 01:00
@@ -19,7 +19,7 @@
 
 source aml/bin/activate
 
-n="nproc --all"
+n=$(nproc --all)
 
 # Options
 # --name : Name for wandb
