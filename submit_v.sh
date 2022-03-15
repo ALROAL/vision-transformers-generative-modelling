@@ -1,12 +1,12 @@
 #!/bin/sh
-#BSUB -q gpua100
-#BSUB -J Classifier
+#BSUB -q gpuv100
+#BSUB -J ViTVAE
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 01:00
 #BSUB -R "rusage[mem=8GB]"
-##BSUB -R "select[gpu32gb]"
+##BSUB -R "select[gpu32gb]" #options gpu16gb or gpu32gb
 #BSUB -o outputs/gpu_%J.out
 #BSUB -e outputs/gpu_%J.err
 # -- end of LSF options --
@@ -25,7 +25,7 @@ source aml/bin/activate
 # --heads : Number of heads in Multi-head Attention layer
 # --mlp_dim : Dimension of the MLP (FeedForward) layer
 
-python3 main.py --name Classifier --model-type Classifier --max-epochs 200 --num-workers 8 --depth 16 >| outputs/class.out 2>| error/class.err
+# python3 main.py --name Classifier --model-type Classifier --max-epochs 200 --num-workers 8 >| outputs/class.out 2>| error/class.err
 
-# python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 
