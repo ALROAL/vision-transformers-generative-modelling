@@ -24,6 +24,7 @@ def main(
     depth: int = 12,
     heads: int = 16,
     mlp_dim: int = 2048,
+    lr: float = 3e-5
 ):
 
     if model_type == "Classifier":
@@ -37,6 +38,7 @@ def main(
             mlp_dim=mlp_dim,
             dropout=0.5,
             emb_dropout=0.3,
+            lr=lr
         )
     if model_type == "ViTVAE":
         model = ViTVAE(

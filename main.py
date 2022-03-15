@@ -14,6 +14,7 @@ def main(
     depth: int = 12,
     heads: int = 16,
     mlp_dim: int = 2048,
+    lr: float = 3e-5
 ):
 
     train(
@@ -25,6 +26,7 @@ def main(
         depth=depth,
         heads=heads,
         mlp_dim=mlp_dim,
+        lr=lr
     )
 
 
@@ -55,6 +57,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mlp_dim", type=int, help="Dimension of the MLP (FeedForward) layer"
     )
+    parser.add_argument(
+        "--lr", type=float, help="Learning rate (Currently only for classifier)"
+    )
     args = parser.parse_args()
 
     name = "test"
@@ -65,6 +70,7 @@ if __name__ == "__main__":
     depth = 12
     heads = 16
     mlp_dim = 2048
+    lr = 3e-5
 
     if args.name:
         name = args.name
@@ -82,6 +88,8 @@ if __name__ == "__main__":
         heads = args.heads
     if args.mlp_dim:
         mlp_dim = args.mlp_dim
+    if args.lr:
+        lr = args.lr
 
     main(
         name=name,
@@ -92,4 +100,5 @@ if __name__ == "__main__":
         depth=depth,
         heads=heads,
         mlp_dim=mlp_dim,
+        lr=lr
     )
