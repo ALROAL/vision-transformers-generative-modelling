@@ -40,6 +40,18 @@ def main(
             emb_dropout=0.3,
             lr=lr
         )
+        checkpoint_callback = ModelCheckpoint(
+        dirpath=_PATH_MODELS + "/" + model_type,
+        monitor="val_acc",
+        mode="max",
+        save_top_k=1,
+        auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="val_acc", patience=20, verbose=True, mode="max", strict=False
+        )
+
+
     if model_type == "ViTVAE":
         model = ViTVAE(
             image_size=32,
@@ -49,21 +61,22 @@ def main(
             heads=heads,
             mlp_dim=mlp_dim,
         )
-
-    cifar = CIFARDataModule(batch_size=1024, num_workers=num_workers)
-    cifar.prepare_data()
-    cifar.setup()
-
-    checkpoint_callback = ModelCheckpoint(
+        checkpoint_callback = ModelCheckpoint(
         dirpath=_PATH_MODELS + "/" + model_type,
         monitor="val_loss",
         mode="min",
         save_top_k=1,
         auto_insert_metric_name=True,
-    )
-    early_stopping_callback = EarlyStopping(
-        monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
-    )
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
+        )
+
+    cifar = CIFARDataModule(batch_size=1024, num_workers=num_workers)
+    cifar.prepare_data()
+    cifar.setup()
+
+    
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
     wandb_logger = WandbLogger(project="ViT-VAE", name=name)
