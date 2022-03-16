@@ -149,6 +149,7 @@ class DeepViT(LightningModule):
         )
         self.lr = lr
         self.save_hyperparameters()
+        self.criterion = nn.CrossEntropyLoss()
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
@@ -166,8 +167,8 @@ class DeepViT(LightningModule):
         x = self.to_latent(x)
         return self.mlp_head(x)
 
-    def loss(self, y_hat, y):
-        return F.cross_entropy(y_hat.softmax(dim=1), y)
+    def loss(self, output, target):
+        return self.criterion(output, target)
 
     def training_step(self, batch, batch_idx):
         data, target = batch
