@@ -122,7 +122,7 @@ class ViT(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 class DeepViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0., lr=1e-4):
         super().__init__()
         assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
         num_patches = (image_size // patch_size) ** 2
@@ -147,6 +147,8 @@ class DeepViT(nn.Module):
             nn.LayerNorm(dim),
             nn.Linear(dim, num_classes)
         )
+        self.lr = lr
+        self.save_hyperparameters()
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
