@@ -121,7 +121,7 @@ class ViT(LightningModule):
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
-class DeepViT(nn.Module):
+class DeepViT(LightningModule):
     def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0., lr=1e-4):
         super().__init__()
         assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
@@ -165,6 +165,47 @@ class DeepViT(nn.Module):
 
         x = self.to_latent(x)
         return self.mlp_head(x)
+
+    def loss(self, y_hat, y):
+        return F.cross_entropy(y_hat.softmax(dim=1), y)
+
+    def training_step(self, batch, batch_idx):
+        data, target = batch
+        output = self(data)
+        loss = self.loss(output, target)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        output = self(data)
+        loss = self.loss(output, target)
+        acc = (output.argmax(dim=1) == target).float().mean()
+        self.log("val_acc", acc)
+        self.log("val_loss", loss)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        output = self(data)
+        loss = self.loss(output, target)
+        acc = (output.argmax(dim=1) == target).float().mean()
+        self.log("test_acc", acc)
+        self.log("test_loss", loss)
+        return {"loss": loss, "acc": acc}
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 
 class ViTVAE(LightningModule):
