@@ -54,14 +54,14 @@ def main(
     if model_type == "Classifier_deep":
         model = DeepViT(
             image_size=32,
-            patch_size=8,
+            patch_size=16,
             num_classes=10,
             dim=dim,
             depth=depth,
             heads=heads,
             mlp_dim=mlp_dim,
-            dropout=0.5,
-            emb_dropout=0.3,
+            dropout=0.1,
+            emb_dropout=0.,
             lr=lr
         )
         checkpoint_callback = ModelCheckpoint(
