@@ -14,7 +14,8 @@ def main(
     depth: int = 12,
     heads: int = 16,
     mlp_dim: int = 2048,
-    lr: float = 3e-5
+    lr: float = 3e-5,
+    patch_size: int = 8
 ):
 
     train(
@@ -26,7 +27,8 @@ def main(
         depth=depth,
         heads=heads,
         mlp_dim=mlp_dim,
-        lr=lr
+        lr=lr,
+        patch_size=patch_size
     )
 
 
@@ -60,6 +62,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lr", type=float, help="Learning rate (Currently only for classifier)"
     )
+    parser.add_argument(
+        "--patch-size", "--ps", type=int, help="Number of patches. image_size must be divisible by patch_size. The number of patches is: n = (image_size // patch_size) ** 2 and n must be greater than 16. (aka patch_size can't be more than 8 for cifar10"
+    )
     args = parser.parse_args()
 
     name = "test"
@@ -90,6 +95,8 @@ if __name__ == "__main__":
         mlp_dim = args.mlp_dim
     if args.lr:
         lr = args.lr
+    if args.patch_size:
+        patch_size = args.patch_size
 
     main(
         name=name,
@@ -100,5 +107,6 @@ if __name__ == "__main__":
         depth=depth,
         heads=heads,
         mlp_dim=mlp_dim,
-        lr=lr
+        lr=lr,
+        patch_size=patch_size
     )

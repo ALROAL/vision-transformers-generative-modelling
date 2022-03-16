@@ -25,7 +25,8 @@ source aml/bin/activate
 # --heads : Number of heads in Multi-head Attention layer
 # --mlp_dim : Dimension of the MLP (FeedForward) layer
 # --lr : Learning rate (Currently only for classifier)
+# --patch-size : Number of patches. (patch_size can't be more than 8 for cifar10) image_size must be divisible by patch_size. The number of patches is: n = (image_size // patch_size) ** 2 and n must be greater than 16. 
 
-python3 main.py --name ViT-Large --model-type Classifier_deep --max-epochs 300 --num-workers 8 --depth 24 --lr 1e-4 --dim 1024 --mlp_dim 4096 --heads 16 >| outputs/class.out 2>| error/class.err
+python3 main.py --name ViT-Large --model-type Classifier_deep --max-epochs 300 --num-workers 8 --depth 16 --lr 1e-4 --dim 1024 --mlp_dim 2048 --heads 16 --patch_size 8 >| outputs/class.out 2>| error/class.err
 
 # python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err

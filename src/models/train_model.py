@@ -24,13 +24,14 @@ def main(
     depth: int = 12,
     heads: int = 16,
     mlp_dim: int = 2048,
-    lr: float = 3e-5
+    lr: float = 3e-5,
+    patch_size: int = 8
 ):
 
     if model_type == "Classifier":
         model = ViT(
             image_size=32,
-            patch_size=8,
+            patch_size=patch_size,
             num_classes=10,
             dim=dim,
             depth=depth,
@@ -54,7 +55,7 @@ def main(
     if model_type == "Classifier_deep":
         model = DeepViT(
             image_size=32,
-            patch_size=16,
+            patch_size=patch_size,
             num_classes=10,
             dim=dim,
             depth=depth,
