@@ -197,7 +197,7 @@ class DeepViT(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr, weight_decay=0.1)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",

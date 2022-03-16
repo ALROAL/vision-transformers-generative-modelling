@@ -48,7 +48,7 @@ def main(
         auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_acc", patience=20, verbose=True, mode="max", strict=False
+            monitor="val_acc", patience=30, verbose=True, mode="max", strict=False
         )
 
     if model_type == "Classifier_deep":
@@ -72,7 +72,7 @@ def main(
         auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_acc", patience=20, verbose=True, mode="max", strict=False
+            monitor="val_acc", patience=30, verbose=True, mode="max", strict=False
         )
 
 

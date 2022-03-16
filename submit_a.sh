@@ -26,6 +26,6 @@ source aml/bin/activate
 # --mlp_dim : Dimension of the MLP (FeedForward) layer
 # --lr : Learning rate (Currently only for classifier)
 
-python3 main.py --name ViT-Large --model-type Classifier_deep --max-epochs 200 --num-workers 8 --depth 24 --lr 1e-3 --dim 1024 --mlp_dim 4096 --heads 16 >| outputs/class.out 2>| error/class.err
+python3 main.py --name ViT-Large --model-type Classifier_deep --max-epochs 300 --num-workers 8 --depth 24 --lr 1e-4 --dim 1024 --mlp_dim 4096 --heads 16 >| outputs/class.out 2>| error/class.err
 
 # python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
