@@ -5,7 +5,7 @@ from einops.layers.torch import Rearrange
 from pytorch_lightning import LightningModule
 from torch import nn, optim
 from torch.nn import functional as F
-from vit_pytorch.vit import Transformer
+from vit_pytorch.vit import Transformer, pair
 from vit_pytorch.deepvit import Transformer as Transformer_deep
 
 
