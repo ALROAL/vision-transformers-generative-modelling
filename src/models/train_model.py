@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CIFARDataModule, MNISTDataModule
-from src.models.models import ViT, ViTVAE
+from src.models.models import ViT, ViTVAE, DeepViT
 
 
 def main(
@@ -29,6 +29,30 @@ def main(
 
     if model_type == "Classifier":
         model = ViT(
+            image_size=32,
+            patch_size=8,
+            num_classes=10,
+            dim=dim,
+            depth=depth,
+            heads=heads,
+            mlp_dim=mlp_dim,
+            dropout=0.5,
+            emb_dropout=0.3,
+            lr=lr
+        )
+        checkpoint_callback = ModelCheckpoint(
+        dirpath=_PATH_MODELS + "/" + model_type,
+        monitor="val_acc",
+        mode="max",
+        save_top_k=1,
+        auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="val_acc", patience=20, verbose=True, mode="max", strict=False
+        )
+
+    if model_type == "Classifier_deep":
+        model = DeepViT(
             image_size=32,
             patch_size=8,
             num_classes=10,
