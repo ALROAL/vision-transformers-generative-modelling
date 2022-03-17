@@ -7,7 +7,7 @@ from src.models.train_model import main as train
 
 def main(
     name: str = "test",
-    model_type: str = "Classifier",
+    model_type: str = "ViT",
     max_epochs: int = 10,
     num_workers: int = 0,
     dim: int = 1024,
@@ -15,7 +15,7 @@ def main(
     heads: int = 16,
     mlp_dim: int = 2048,
     lr: float = 3e-5,
-    patch_size: int = 8
+    patch_size: int = 8,
 ):
 
     train(
@@ -28,13 +28,13 @@ def main(
         heads=heads,
         mlp_dim=mlp_dim,
         lr=lr,
-        patch_size=patch_size
+        patch_size=patch_size,
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Trains a model (ViT-VAE or Classifier) on CIFAR10"
+        description="Trains a model (ViT-VAE, ViT, DeepViT) on CIFAR10"
     )
     parser.add_argument("--name", "-n", type=str, help="Name for wandb")
     parser.add_argument(
@@ -63,12 +63,20 @@ if __name__ == "__main__":
         "--lr", type=float, help="Learning rate (Currently only for classifier)"
     )
     parser.add_argument(
-        "--patch-size", "--ps", type=int, help="Number of patches. image_size must be divisible by patch_size. The number of patches is: n = (image_size // patch_size) ** 2 and n must be greater than 16. (aka patch_size can't be more than 8 for cifar10"
+        "--patch-size",
+        "--ps",
+        type=int,
+        help="Number of patches. image_size must be divisible by patch_size. The number of patches is: n = (image_size // patch_size) ** 2 and n must be greater than 16. (aka patch_size can't be more than 8 for cifar10",
+    )
+    parser.add_argument(
+        "--optim",
+        type=str,
+        help="Which optimizer to use (Adam or SGD) only works for ViT",
     )
     args = parser.parse_args()
 
     name = "test"
-    model_type = "Classifier"
+    model_type = "ViT"
     max_epochs = 10
     num_workers = 0
     dim = 1024
@@ -76,6 +84,7 @@ if __name__ == "__main__":
     heads = 16
     mlp_dim = 2048
     lr = 3e-5
+    optim_choice = "Adam"
 
     if args.name:
         name = args.name
@@ -97,6 +106,8 @@ if __name__ == "__main__":
         lr = args.lr
     if args.patch_size:
         patch_size = args.patch_size
+    if args.optim:
+        optim_choice = args.optim
 
     main(
         name=name,
@@ -108,5 +119,6 @@ if __name__ == "__main__":
         heads=heads,
         mlp_dim=mlp_dim,
         lr=lr,
-        patch_size=patch_size
+        patch_size=patch_size,
+        optim_choice=optim_choice,
     )
