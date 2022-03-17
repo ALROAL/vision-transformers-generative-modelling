@@ -16,6 +16,7 @@ def main(
     mlp_dim: int = 2048,
     lr: float = 3e-5,
     patch_size: int = 8,
+    optim_choice: str = "Adam"
 ):
 
     train(
@@ -29,6 +30,7 @@ def main(
         mlp_dim=mlp_dim,
         lr=lr,
         patch_size=patch_size,
+        optim_choice=optim_choice
     )
 
 
