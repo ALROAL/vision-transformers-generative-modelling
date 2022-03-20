@@ -78,7 +78,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     name = "test"
-    model_type = "ViT"
+    model_type = "ViTVAE"
     max_epochs = 10
     num_workers = 0
     dim = 1024
@@ -86,7 +86,9 @@ if __name__ == "__main__":
     heads = 16
     mlp_dim = 2048
     lr = 3e-5
+    patch_size=16
     optim_choice = "Adam"
+
 
     if args.name:
         name = args.name

@@ -104,6 +104,7 @@ def main(
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
+    wandb.login(key="93759c96198804dbd28c88e2d68f3e8c1038855d")
     wandb_logger = WandbLogger(project="ViT-VAE", name=name)
 
     seed_everything(42, workers=True)

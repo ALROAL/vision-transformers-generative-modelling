@@ -11,9 +11,10 @@ from torchvision.datasets import CIFAR10, MNIST, CelebA
 
 from src import _PATH_DATA
 
+
 class CelebADataModule(pl.LightningDataModule):
     def __init__(
-        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+            self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -26,14 +27,13 @@ class CelebADataModule(pl.LightningDataModule):
         CelebA(self.data_dir, split="test", download=False)
 
     def setup(self):
-        transforms_seq = torch.nn.Sequential(transforms.Resize((192, 160)))
-
+        transforms_seq = transforms.Compose([transforms.Resize((192, 160)),
+                                             transforms.ToTensor()])
         self.celeb_test = CelebA(self.data_dir, split="test", transform=transforms_seq)
 
         self.celeb_train = CelebA(self.data_dir, split="train", transform=transforms_seq)
 
         self.celeb_val = CelebA(self.data_dir, split="valid", transform=transforms_seq)
-
 
     def train_dataloader(self):
         return DataLoader(
@@ -67,9 +67,10 @@ class CelebADataModule(pl.LightningDataModule):
     #         pin_memory=True,
     #     )
 
+
 class MNISTDataModule(pl.LightningDataModule):
     def __init__(
-        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+            self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -137,7 +138,7 @@ class MNISTDataModule(pl.LightningDataModule):
 
 class CIFARDataModule(pl.LightningDataModule):
     def __init__(
-        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+            self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
     ):
         super().__init__()
         self.data_dir = data_dir
