@@ -11,7 +11,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
-from src.data.make_dataset import CIFARDataModule, MNISTDataModule
+from src.data.make_dataset import CIFARDataModule, CelebADataModule
 from src.models.models import DeepViT, ViT, ViTVAE
 
 
@@ -98,9 +98,9 @@ def main(
             monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    cifar = CIFARDataModule(batch_size=512, num_workers=num_workers)
-    cifar.prepare_data()
-    cifar.setup()
+    celeb = CelebADataModule(batch_size=512, num_workers=num_workers)
+    celeb.prepare_data()
+    celeb.setup()
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
@@ -122,8 +122,8 @@ def main(
         logger=wandb_logger,
     )
 
-    trainer.tune(model, datamodule=cifar)
-    trainer.fit(model, datamodule=cifar)
+    trainer.tune(model, datamodule=celeb)
+    trainer.fit(model, datamodule=celeb)
 
 
 if __name__ == "__main__":

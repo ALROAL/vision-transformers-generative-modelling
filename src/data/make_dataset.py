@@ -7,10 +7,64 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
-from torchvision.datasets import CIFAR10, MNIST
+from torchvision.datasets import CIFAR10, MNIST, CelebA
 
 from src import _PATH_DATA
 
+class CelebADataModule(pl.LightningDataModule):
+    def __init__(
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+    ):
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+    def prepare_data(self):
+        # download
+        CelebA(self.data_dir, split="train", download=False)
+        CelebA(self.data_dir, split="test", download=False)
+
+    def setup(self):
+
+        self.celeb_test = CelebA(self.data_dir, split="test", transform=transforms.ToTensor())
+
+        self.celeb_train = CelebA(self.data_dir, split="train", transform=transforms.ToTensor())
+
+        self.celeb_val = CelebA(self.data_dir, split="valid", transform=transforms.ToTensor())
+
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.celeb_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.celeb_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.celeb_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    # def predict_dataloader(self):
+    #     return DataLoader(
+    #         self.celeb_predict,
+    #         batch_size=self.batch_size,
+    #         num_workers=self.num_workers,
+    #         pin_memory=True,
+    #     )
 
 class MNISTDataModule(pl.LightningDataModule):
     def __init__(
