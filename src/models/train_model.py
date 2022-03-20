@@ -80,8 +80,8 @@ def main(
 
     if model_type == "ViTVAE":
         model = ViTVAE(
-            image_size=32,
-            patch_size=8,
+            image_size=(192, 160),
+            patch_size=16,
             dim=dim,
             depth=depth,
             heads=heads,

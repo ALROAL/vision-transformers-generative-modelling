@@ -18,9 +18,9 @@ source aml/bin/activate
 # Options
 # Run main.py --help to get options
 
-python3 main.py --name ViT-Base --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 12 --lr 1e-4 --dim 768 --mlp_dim 3072 --heads 12 --patch-size 8 >| outputs/class.out 2>| error/class.err
-python3 main.py --name ViT-Large --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 24 --lr 1e-4 --dim 1024 --mlp_dim 4096 --heads 16 --patch-size 8 >| outputs/class.out 2>| error/class.err
-python3 main.py --name ViT-Huge --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 32 --lr 1e-4 --dim 1280 --mlp_dim 5120 --heads 16 --patch-size 8 >| outputs/class.out 2>| error/class.err
+#python3 main.py --name ViT-Base --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 12 --lr 1e-4 --dim 768 --mlp_dim 3072 --heads 12 --patch-size 8 >| outputs/class.out 2>| error/class.err
+#python3 main.py --name ViT-Large --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 24 --lr 1e-4 --dim 1024 --mlp_dim 4096 --heads 16 --patch-size 8 >| outputs/class.out 2>| error/class.err
+#python3 main.py --name ViT-Huge --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 32 --lr 1e-4 --dim 1280 --mlp_dim 5120 --heads 16 --patch-size 8 >| outputs/class.out 2>| error/class.err
 
 
-# python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 200 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err

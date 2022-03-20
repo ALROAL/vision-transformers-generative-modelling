@@ -251,7 +251,7 @@ class ViTVAE(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         kl_weight=1e-5,
-        lr=1e-3,
+        lr=1e-5,
     ):
         super().__init__()
         image_height, image_width = pair(image_size)
