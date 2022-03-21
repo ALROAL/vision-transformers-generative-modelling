@@ -3,6 +3,7 @@ import os
 import sys
 
 from src.models.train_model import main as train
+import torch
 
 
 def main(
@@ -18,6 +19,7 @@ def main(
     patch_size: int = 8,
     optim_choice: str = "Adam"
 ):
+    torch.cuda.empty_cache()
 
     train(
         name=name,
@@ -88,7 +90,6 @@ if __name__ == "__main__":
     lr = 3e-5
     patch_size=16
     optim_choice = "Adam"
-
 
     if args.name:
         name = args.name
