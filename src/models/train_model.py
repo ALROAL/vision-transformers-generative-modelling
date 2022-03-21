@@ -99,7 +99,7 @@ def main(
         )
 
     celeb = CelebADataModule(batch_size=8, num_workers=num_workers)
-    celeb.prepare_data()
+    #celeb.prepare_data()
     celeb.setup()
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")

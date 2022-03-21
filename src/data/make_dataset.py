@@ -10,6 +10,23 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10, MNIST, CelebA
 
 from src import _PATH_DATA
+from typing import Callable, List, Optional, Union
+
+
+class DebuggedCelebA(CelebA):
+    def __init__(
+            self,
+            root: str,
+            split: str = "train",
+            target_type: Union[List[str], str] = "attr",
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            download: bool = False,
+    ) -> None:
+        super().__init__(root, split, target_type, transform, target_transform, download)
+
+    def _check_integrity(self) -> bool:
+        return True
 
 
 class CelebADataModule(pl.LightningDataModule):
@@ -23,17 +40,17 @@ class CelebADataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # download
-        CelebA(self.data_dir, split="train", download=False)
-        CelebA(self.data_dir, split="test", download=False)
+        DebuggedCelebA(self.data_dir, split="train", download=False)
+        DebuggedCelebA(self.data_dir, split="test", download=False)
 
     def setup(self):
         transforms_seq = transforms.Compose([transforms.Resize((192, 160)),
                                              transforms.ToTensor()])
-        self.celeb_test = CelebA(self.data_dir, split="test", transform=transforms_seq)
+        self.celeb_test = DebuggedCelebA(self.data_dir, split="test", transform=transforms_seq)
 
-        self.celeb_train = CelebA(self.data_dir, split="train", transform=transforms_seq)
+        self.celeb_train = DebuggedCelebA(self.data_dir, split="train", transform=transforms_seq)
 
-        self.celeb_val = CelebA(self.data_dir, split="valid", transform=transforms_seq)
+        self.celeb_val = DebuggedCelebA(self.data_dir, split="valid", transform=transforms_seq)
 
     def train_dataloader(self):
         return DataLoader(
