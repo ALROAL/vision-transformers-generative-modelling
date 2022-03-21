@@ -8,15 +8,15 @@ import torch
 
 def main(
     name: str = "test",
-    model_type: str = "ViT",
+    model_type: str = "ViTVAE",
     max_epochs: int = 10,
     num_workers: int = 0,
-    dim: int = 1024,
-    depth: int = 12,
-    heads: int = 16,
-    mlp_dim: int = 2048,
+    dim: int = 512,
+    depth: int = 2,
+    heads: int = 2,
+    mlp_dim: int = 512,
     lr: float = 3e-5,
-    patch_size: int = 8,
+    patch_size: int = 16,
     optim_choice: str = "Adam"
 ):
     torch.cuda.empty_cache()
