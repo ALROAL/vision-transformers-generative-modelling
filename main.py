@@ -91,18 +91,6 @@ if __name__ == "__main__":
     patch_size=16
     optim_choice = "Adam"
 
-    name = "test"
-    model_type = "ViTVAE"
-    max_epochs = 10
-    num_workers = 0
-    dim = 512
-    depth = 4
-    heads = 4
-    mlp_dim = 512
-    lr = 3e-5
-    patch_size=16
-    optim_choice = "Adam"
-
     if args.name:
         name = args.name
     if args.model_type:

@@ -25,7 +25,7 @@ def main(
     heads: int = 16,
     mlp_dim: int = 2048,
     lr: float = 3e-5,
-    patch_size: int = 8,
+    patch_size: int = 16,
     optim_choice: str = "Adam",
 ):
 
@@ -98,7 +98,7 @@ def main(
             monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    celeb = CelebADataModule(batch_size=8, num_workers=num_workers)
+    celeb = CelebADataModule(batch_size=1024, num_workers=num_workers)
     #celeb.prepare_data()
     celeb.setup()
 
