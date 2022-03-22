@@ -84,9 +84,9 @@ if __name__ == "__main__":
     max_epochs = 10
     num_workers = 0
     dim = 1024
-    depth = 12
-    heads = 16
-    mlp_dim = 2048
+    depth = 4
+    heads = 8
+    mlp_dim = 1024
     lr = 3e-5
     patch_size=16
     optim_choice = "Adam"

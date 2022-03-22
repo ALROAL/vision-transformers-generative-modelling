@@ -21,9 +21,9 @@ def main(
     max_epochs: int = 10,
     num_workers: int = 0,
     dim: int = 1024,
-    depth: int = 12,
-    heads: int = 16,
-    mlp_dim: int = 2048,
+    depth: int = 4,
+    heads: int = 8,
+    mlp_dim: int = 1024,
     lr: float = 3e-5,
     patch_size: int = 16,
     optim_choice: str = "Adam",
@@ -80,7 +80,7 @@ def main(
 
     if model_type == "ViTVAE":
         model = ViTVAE(
-            image_size=(192, 160),
+            image_size=(96, 80),
             patch_size=16,
             dim=dim,
             depth=depth,

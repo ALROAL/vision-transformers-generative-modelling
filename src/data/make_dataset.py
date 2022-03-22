@@ -44,7 +44,7 @@ class CelebADataModule(pl.LightningDataModule):
         DebuggedCelebA(self.data_dir, split="test", download=False)
 
     def setup(self):
-        transforms_seq = transforms.Compose([transforms.Resize((192, 160)),
+        transforms_seq = transforms.Compose([transforms.Resize((96, 80)),
                                              transforms.ToTensor()])
         self.celeb_test = DebuggedCelebA(self.data_dir, split="test", transform=transforms_seq)
 
