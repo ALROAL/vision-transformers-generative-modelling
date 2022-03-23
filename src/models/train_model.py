@@ -28,6 +28,7 @@ def main(
     patch_size: int = 16,
     optim_choice: str = "Adam",
 ):
+    filename = "_".join([model_type, patch_size, dim, depth, heads, mlp_dim])
 
     if model_type == "ViT":
         model = ViT(
@@ -45,6 +46,7 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
+            filename=filename,
             monitor="val_acc",
             mode="max",
             save_top_k=1,
@@ -69,6 +71,7 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
+            filename=filename,
             monitor="val_acc",
             mode="max",
             save_top_k=1,
@@ -89,6 +92,7 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
+            filename=filename,
             monitor="val_loss",
             mode="min",
             save_top_k=1,
