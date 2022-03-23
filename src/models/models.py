@@ -242,16 +242,16 @@ class ViTVAE(LightningModule):
         self,
         image_size=(96,80),
         patch_size=16,
-        dim=1024,
+        dim=512,
         depth=4,
-        heads=8,
-        mlp_dim=1024,
+        heads=4,
+        mlp_dim=256,
         channels=3,
         dim_head=64,
         dropout=0.0,
         emb_dropout=0.0,
         kl_weight=1e-5,
-        lr=1e-5,
+        lr=5e-5,
     ):
         super().__init__()
         image_height, image_width = pair(image_size)
@@ -358,7 +358,8 @@ class ViTVAE(LightningModule):
         """
         z = torch.randn(num_samples, 1, self.dim)
 
-        samples = self.decode(z)
+        samples = self.decoder(z)
+
         return samples
 
     def elbo(self, recons_x, x, mu, logvar):

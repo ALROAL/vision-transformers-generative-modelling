@@ -12,10 +12,10 @@ def main(
     max_epochs: int = 10,
     num_workers: int = 0,
     dim: int = 512,
-    depth: int = 2,
-    heads: int = 2,
-    mlp_dim: int = 512,
-    lr: float = 3e-5,
+    depth: int = 4,
+    heads: int = 4,
+    mlp_dim: int = 256,
+    lr: float = 5e-5,
     patch_size: int = 16,
     optim_choice: str = "Adam"
 ):
@@ -83,11 +83,11 @@ if __name__ == "__main__":
     model_type = "ViTVAE"
     max_epochs = 10
     num_workers = 0
-    dim = 1024
+    dim = 512
     depth = 4
-    heads = 8
-    mlp_dim = 1024
-    lr = 3e-5
+    heads = 4
+    mlp_dim = 256
+    lr = 5e-5
     patch_size=16
     optim_choice = "Adam"
 

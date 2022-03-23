@@ -83,7 +83,7 @@ def main(
 
     if model_type == "ViTVAE":
         model = ViTVAE(
-            image_size=(96, 80),
+            image_size=(128, 96),
             patch_size=16,
             dim=dim,
             depth=depth,
@@ -99,7 +99,7 @@ def main(
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
+            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
     celeb = CelebADataModule(batch_size=1024, num_workers=num_workers)
