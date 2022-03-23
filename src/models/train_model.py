@@ -28,7 +28,7 @@ def main(
     patch_size: int = 16,
     optim_choice: str = "Adam",
 ):
-    filename = "_".join([model_type, patch_size, dim, depth, heads, mlp_dim])
+    filename = "_".join([str(p) for p in [model_type, patch_size, dim, depth, heads, mlp_dim]])
 
     if model_type == "ViT":
         model = ViT(
