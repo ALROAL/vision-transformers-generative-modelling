@@ -22,10 +22,11 @@ class DebuggedCelebA(CelebA):
             transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None,
             download: bool = False,
-    ) -> None:
+            ):
         super().__init__(root, split, target_type, transform, target_transform, download)
+        self.attr_names = self.attr_names[:-1]
 
-    def _check_integrity(self) -> bool:
+    def _check_integrity(self):
         return True
 
 
