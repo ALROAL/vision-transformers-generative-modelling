@@ -495,13 +495,13 @@ class ViTCVAE(LightningModule):
 
     def decoder(self, x, label):
         label_tokens = repeat(label,"b -> b 1 d", d=self.dim)
-        x = torch.cat((label_tokens,x), dim=1)
+        x = torch.cat((x,label_tokens), dim=1)
 
         x = self.decoder_transformer(x)
 
         x = self.dropout(x)
 
-        imgs = self.back_to_img(x)
+        imgs = self.back_to_img(x[:,0:1])
 
         return imgs
 
@@ -537,14 +537,13 @@ class ViTCVAE(LightningModule):
         """
         z = torch.randn(num_samples, 1, self.dim)
         if (num_samples > 1) & (len(label) == 1):
-            label = repeat(label,"l -> b l d", b=num_samples,d=self.dim)
+            label = repeat(label,"1 -> b", b=num_samples)
         elif (num_samples > 1) & (len(label) != 1) & (num_samples != len(label)):
             print("Error, the number of labels given much match the number of samples, or be a singular value")
             return None
         
-        z = torch.cat((label,z),dim=1)
 
-        samples = self.decoder(z)
+        samples = self.decoder(z,label)
 
         return samples
 
@@ -578,7 +577,7 @@ class ViTCVAE(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=4)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
