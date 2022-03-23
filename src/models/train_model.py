@@ -102,7 +102,7 @@ def main(
             monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    celeb = CelebADataModule(batch_size=1024, num_workers=num_workers)
+    celeb = CelebADataModule(batch_size=128, num_workers=num_workers)
     #celeb.prepare_data()
     celeb.setup()
 
