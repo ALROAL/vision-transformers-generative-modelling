@@ -11,10 +11,10 @@ def main(
     model_type: str = "ViTVAE",
     max_epochs: int = 10,
     num_workers: int = 0,
-    dim: int = 512,
-    depth: int = 4,
-    heads: int = 4,
-    mlp_dim: int = 256,
+    dim: int = 128,
+    depth: int = 12,
+    heads: int = 16,
+    mlp_dim: int = 128,
     lr: float = 5e-5,
     patch_size: int = 16,
     optim_choice: str = "Adam"
@@ -38,7 +38,7 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Trains a model (ViT-VAE, ViT, DeepViT) on CIFAR10"
+        description="Trains a model (ViT-VAE, ViT, DeepViT) on CelebA"
     )
     parser.add_argument("--name", "-n", type=str, help="Name for wandb")
     parser.add_argument(
@@ -83,10 +83,10 @@ if __name__ == "__main__":
     model_type = "ViTVAE"
     max_epochs = 10
     num_workers = 0
-    dim = 512
-    depth = 4
-    heads = 4
-    mlp_dim = 256
+    dim = 128
+    depth = 12
+    heads = 16
+    mlp_dim = 128
     lr = 5e-5
     patch_size=16
     optim_choice = "Adam"

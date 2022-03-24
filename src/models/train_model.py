@@ -83,7 +83,7 @@ def main(
 
     if model_type == "ViTVAE":
         model = ViTVAE(
-            image_size=(128, 96),
+            image_size=(128, 128),
             patch_size=16,
             dim=dim,
             depth=depth,
@@ -104,7 +104,7 @@ def main(
 
     if model_type == "ViTCVAE":
         model = ViTCVAE(
-            image_size=(128, 96),
+            image_size=(128, 128),
             patch_size=16,
             dim=dim,
             depth=depth,

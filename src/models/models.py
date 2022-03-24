@@ -248,6 +248,7 @@ class ViTVAE(LightningModule):
         mlp_dim=256,
         channels=3,
         dim_head=64,
+        ngf=64,
         dropout=0.0,
         emb_dropout=0.0,
         kl_weight=1e-6,
@@ -300,6 +301,33 @@ class ViTVAE(LightningModule):
             dim, depth, heads, dim_head, mlp_dim, dropout
         )
 
+        self.decoder_conv = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 16),
+            nn.ReLU(True),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 16, ngf * 8, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf * 2, ngf, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. (ngf) x 64 x 64
+            nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.Tanh()
+            # state size. (nc) x 128 x 128
+        )
+
         self.lr = lr
         self.kl_weight = kl_weight
         self.save_hyperparameters()
@@ -323,28 +351,30 @@ class ViTVAE(LightningModule):
         return x
 
     def decoder(self, x):
-        x = self.decoder_transformer(x)
+        x = rearrange(x, 'b d -> b d 1 1')
 
         x = self.dropout(x)
 
-        imgs = self.back_to_img(x)
+        x = self.decoder_conv(x)
 
-        return imgs
+        return x
 
     def reparameterize(self, mean, log_var):
+
         std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
 
         z = eps.mul(std).add_(mean)
-        z = rearrange(z, "b d -> b 1 d")
+
         return z
 
     def forward(self, img):
         x = self.encoder(img)
-        x += self.decoder_pos_embedding
+
         mean = x[:, 0]
         log_var = x[:, 1]
         z = self.reparameterize(mean, log_var)
+
         out = self.decoder(z)
 
         return img, out, mean, log_var
@@ -356,7 +386,7 @@ class ViTVAE(LightningModule):
         :param num_samples: (Int) Number of samples
         :return: (Tensor)
         """
-        z = torch.randn(num_samples, 1, self.dim)
+        z = torch.randn(num_samples, self.dim)
 
         samples = self.decoder(z)
 
