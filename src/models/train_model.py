@@ -138,7 +138,7 @@ def main(
         max_epochs=max_epochs,
         gpus=-1,
         precision=16,
-        deterministic=True,
+        deterministic=False,
         default_root_dir=_PROJECT_ROOT,
         callbacks=[checkpoint_callback, early_stopping_callback, lr_monitor],
         auto_lr_find=False,
