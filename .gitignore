@@ -105,3 +105,4 @@ target/
 /data/cifar-10-batches-py
 /data/cifar-10-python.tar.gz
 /notebooks/wandb
+/data_zip
