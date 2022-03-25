@@ -23,4 +23,4 @@ source aml/bin/activate
 #python3 main.py --name ViT-Huge --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 32 --lr 1e-4 --dim 1280 --mlp_dim 5120 --heads 16 --patch-size 8 >| outputs/class.out 2>| error/class.err
 
 
-python3 main.py --name ViTCVAE --model-type ViTCVAE --max-epochs 100 --num-workers 8 >| outputs/ViTCVAE.out 2>| error/ViTCVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err

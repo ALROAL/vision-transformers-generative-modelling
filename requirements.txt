@@ -14,4 +14,4 @@ wandb
 vit-pytorch
 six
 dvc
-"dvc[gdrive]"
+dvc[gdrive]
