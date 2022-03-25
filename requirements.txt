@@ -13,3 +13,5 @@ torchsummary
 wandb
 vit-pytorch
 six
+dvc
+"dvc[gdrive]"
