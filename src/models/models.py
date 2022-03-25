@@ -240,7 +240,7 @@ class DeepViT(LightningModule):
 class ViTVAE(LightningModule):
     def __init__(
         self,
-        image_size=(128,96),
+        image_size=(128,128),
         patch_size=16,
         dim=512,
         depth=4,
