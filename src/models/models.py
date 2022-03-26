@@ -251,7 +251,7 @@ class ViTVAE(LightningModule):
         ngf=64,
         dropout=0.0,
         emb_dropout=0.0,
-        kl_weight=1e-4,
+        kl_weight=1e-5,
         lr=5e-5,
     ):
         super().__init__()
