@@ -16,7 +16,7 @@ from typing import Callable, List, Optional, Union
 class DebuggedCelebA(CelebA):
     def __init__(
             self,
-            root: str,
+            root: str = _PATH_DATA,
             split: str = "train",
             target_type: Union[List[str], str] = "attr",
             transform: Optional[Callable] = None,

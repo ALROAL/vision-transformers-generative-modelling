@@ -24,11 +24,13 @@ def main(
     depth: int = 4,
     heads: int = 8,
     mlp_dim: int = 1024,
+    kl_weight: float = 1e-5,
     lr: float = 3e-5,
     patch_size: int = 16,
+    batch_size: int = 256,
     optim_choice: str = "Adam",
 ):
-    filename = "_".join([str(p) for p in [model_type, patch_size, dim, depth, heads, mlp_dim]])
+    filename = "_".join([str(p) for p in [model_type, patch_size, dim, depth, heads, mlp_dim, batch_size, kl_weight]])
 
     if model_type == "ViT":
         model = ViT(
@@ -89,6 +91,7 @@ def main(
             depth=depth,
             heads=heads,
             mlp_dim=mlp_dim,
+            kl_weight=kl_weight
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
@@ -123,13 +126,12 @@ def main(
             monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    celeb = CelebADataModule(batch_size=128, num_workers=num_workers)
+    celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
     #celeb.prepare_data()
     celeb.setup()
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
-    # wandb.login(key="93759c96198804dbd28c88e2d68f3e8c1038855d")
     wandb_logger = WandbLogger(project="ViT-VAE", name=name)
 
     seed_everything(42, workers=True)
