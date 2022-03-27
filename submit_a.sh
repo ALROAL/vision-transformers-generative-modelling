@@ -4,7 +4,7 @@
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -W 03:00
+#BSUB -W 20:00
 #BSUB -R "rusage[mem=8GB]"
 ##BSUB -R "select[gpu40gb]" #options gpu40gb or gpu80gb
 #BSUB -o outputs/gpu_%J.out
@@ -26,5 +26,11 @@ source aml/bin/activate
 python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 
 python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 256 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 256 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 256 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
