@@ -20,11 +20,26 @@ class DebuggedCelebA(CelebA):
             split: str = "train",
             target_type: Union[List[str], str] = "attr",
             transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None,
             download: bool = False,
-            ):
+    ):
+
+        def target_transform(target):
+            col_idx_1 = self.attr_names.index("Eyeglasses")
+            col_idx_2 = self.attr_names.index("Male")
+
+            if target[col_idx_1].item() == 0 & target[col_idx_2].item() == 1:
+                return torch.tensor([1, 0, 0, 0])
+
+            elif target[col_idx_1].item() == 0 & target[col_idx_2].item() == 0:
+                return torch.tensor([0, 1, 0, 0])
+
+            elif target[col_idx_1].item() == 1 & target[col_idx_2].item() == 1:
+                return torch.tensor([0, 0, 1, 0])
+
+            else:
+                return torch.tensor([0, 0, 0, 1])
+
         super().__init__(root, split, target_type, transform, target_transform, download)
-        self.attr_names = self.attr_names[:-1]
 
     def _check_integrity(self):
         return True
