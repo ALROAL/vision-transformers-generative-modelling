@@ -23,14 +23,14 @@ source aml/bin/activate
 #python3 main.py --name ViT-Huge --model-type ViT --optim SGD --max-epochs 200 --num-workers 8 --depth 32 --lr 1e-4 --dim 1280 --mlp_dim 5120 --heads 16 --patch-size 8 >| outputs/class.out 2>| error/class.err
 
 
-python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 
-python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
-python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
-python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
-python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
-python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
-python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 64 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 128 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 256 --kl_weight 1e-5 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 256 --kl_weight 1e-6 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 python3 main.py --name ViTVAE --model-type ViTVAE --dim 256 --mlp_dim 256 --batch_size 256 --kl_weight 1e-7 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
