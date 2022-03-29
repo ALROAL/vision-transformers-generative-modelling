@@ -651,7 +651,7 @@ class ViTCVAE_A(LightningModule):
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim+num_classes))
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -674,7 +674,7 @@ class ViTCVAE_A(LightningModule):
         self.dropout = nn.Dropout(emb_dropout)
 
         self.encoder_transformer = Transformer(
-            dim, depth, heads, dim_head, mlp_dim, dropout
+            dim+num_classes, depth, heads, dim_head, mlp_dim, dropout
         )
         # For now we use the same transformer architecture for both the encoder and the decoder, but this could change.
         self.decoder_transformer = Transformer(
@@ -723,7 +723,7 @@ class ViTCVAE_A(LightningModule):
 
         b, n, _ = x.shape
         label_tokens = repeat(labels, "d -> b n d", b=b, n=n)
-        x = torch.cat((label_tokens, x), dim=1)
+        x = torch.cat((label_tokens, x), dim=-1)
 
         x += self.pos_embedding
 
