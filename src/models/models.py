@@ -716,7 +716,7 @@ class ViTCVAE_A(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        labels = self.class_embedding(labels)
+        labels = self.class_embedding(labels.float())
         label_tokens = repeat(labels, "b d -> b n d", n=n)
         x = torch.cat((label_tokens, x), dim=1)
 
