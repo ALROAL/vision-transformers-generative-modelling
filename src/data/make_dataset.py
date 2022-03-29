@@ -24,20 +24,18 @@ class DebuggedCelebA(CelebA):
     ):
 
         def target_transform(target):
-            col_idx_1 = self.attr_names.index("Eyeglasses")
-            col_idx_2 = self.attr_names.index("Male")
-
-            if target[col_idx_1].item() == 0 & target[col_idx_2].item() == 1:
-                return torch.tensor([1, 0, 0, 0])
-
-            elif target[col_idx_1].item() == 0 & target[col_idx_2].item() == 0:
-                return torch.tensor([0, 1, 0, 0])
-
-            elif target[col_idx_1].item() == 1 & target[col_idx_2].item() == 1:
-                return torch.tensor([0, 0, 1, 0])
-
+            col_idx_1 = self.attr_names.index("Male")
+            col_idx_2 = self.attr_names.index("Young")
+            if target[col_idx_1]==0:
+                if target[col_idx_2]==0:
+                    return torch.tensor([1,0,0,0])
+                else:
+                    return torch.tensor([0,1,0,0])
             else:
-                return torch.tensor([0, 0, 0, 1])
+                if target[col_idx_2]==0:
+                    return torch.tensor([0,0,1,0])
+                else:
+                    return torch.tensor([0,0,0,1])
 
         super().__init__(root, split, target_type, transform, target_transform, download)
 
