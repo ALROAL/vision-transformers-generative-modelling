@@ -746,7 +746,7 @@ class ViTCVAE_A(LightningModule):
         eps = torch.randn_like(std)
 
         z = eps.mul(std).add_(mean)
-        z = rearrange(z, "b d -> b 1 d")
+
         return z
 
     def forward(self, img, labels):
