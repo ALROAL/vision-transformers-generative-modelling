@@ -722,7 +722,7 @@ class ViTCVAE_A(LightningModule):
         x = torch.cat((mean_tokens, x), dim=1)
 
         b, n, _ = x.shape
-        label_tokens = repeat(labels, "d -> b n d", b=b, n=n)
+        label_tokens = repeat(labels, "b d -> b n d", n=n)
         x = torch.cat((label_tokens, x), dim=-1)
 
         x += self.pos_embedding
