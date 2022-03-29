@@ -714,13 +714,14 @@ class ViTCVAE_A(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        x = torch.cat((labels, x), dim=1)
-
         log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
 
         mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
         x = torch.cat((mean_tokens, x), dim=1)
+
+        # label_tokens = repeat(labels, "d -> b 1 d", b=b)
+        # x = torch.cat((label_tokens, x), dim=1)
 
         x += self.pos_embedding
 
