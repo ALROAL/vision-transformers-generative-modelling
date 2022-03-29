@@ -621,7 +621,7 @@ class ViTCVAE(LightningModule):
 class ViTCVAE_A(LightningModule):
     def __init__(
             self,
-            image_size=(128, 96),
+            image_size=(128, 128),
             patch_size=16,
             num_classes=4,
             dim=256,
@@ -721,8 +721,9 @@ class ViTCVAE_A(LightningModule):
         mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
         x = torch.cat((mean_tokens, x), dim=1)
 
-        # label_tokens = repeat(labels, "d -> b 1 d", b=b)
-        # x = torch.cat((label_tokens, x), dim=1)
+        b, n, _ = x.shape
+        label_tokens = repeat(labels, "d -> b n d", b=b, n=n)
+        x = torch.cat((label_tokens, x), dim=1)
 
         x += self.pos_embedding
 
