@@ -650,7 +650,7 @@ class ViTCVAE_A(LightningModule):
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 3, dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -752,7 +752,7 @@ class ViTCVAE_A(LightningModule):
     def forward(self, img, labels):
 
         x = self.encoder(img, labels)
-        x += self.decoder_pos_embedding
+
         mean = x[:, 0]
         log_var = x[:, 1]
         z = self.reparameterize(mean, log_var)
