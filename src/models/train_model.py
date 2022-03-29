@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CIFARDataModule, CelebADataModule
-from src.models.models import DeepViT, ViT, ViTVAE, ViTCVAE
+from src.models.models import DeepViT, ViT, ViTVAE, ViTCVAE, ViTCVAE_A
 
 
 def main(
@@ -126,8 +126,28 @@ def main(
             monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
+    if model_type == "ViTCVAE_A":
+        model = ViTCVAE_A(
+            image_size=(128, 128),
+            patch_size=16,
+            dim=dim,
+            depth=depth,
+            heads=heads,
+            mlp_dim=mlp_dim,
+        )
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=_PATH_MODELS + "/" + model_type,
+            filename=filename,
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
+        )
+
     celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
-    #celeb.prepare_data()
     celeb.setup()
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
