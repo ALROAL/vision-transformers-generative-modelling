@@ -736,7 +736,7 @@ class ViTCVAE_A(LightningModule):
 
     def decoder(self, x, labels):
 
-        labels = self.class_embedding(labels)
+        labels = self.class_embedding(labels.float())
 
         x += labels
 
