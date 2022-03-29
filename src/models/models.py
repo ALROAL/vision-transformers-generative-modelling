@@ -623,6 +623,7 @@ class ViTCVAE_A(LightningModule):
             self,
             image_size=(128, 96),
             patch_size=16,
+            num_classes=4,
             dim=256,
             depth=12,
             heads=16,
@@ -681,7 +682,7 @@ class ViTCVAE_A(LightningModule):
         )
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.ConvTranspose2d(dim + num_classes, ngf * 16, (4, 4), (1, 1), bias=False),
             nn.BatchNorm2d(ngf * 16),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -734,6 +735,8 @@ class ViTCVAE_A(LightningModule):
     def decoder(self, x, labels):
 
         x = torch.cat((x, labels), dim=1)
+
+        x = rearrange(x, 'b d -> b d 1 1')
 
         x = self.dropout(x)
 
