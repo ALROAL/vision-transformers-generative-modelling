@@ -105,7 +105,7 @@ def main(
             monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    if model_type == "ViTCVAE":
+    if model_type == "ViTCVAE_R":
         model = ViTCVAE(
             image_size=(128, 128),
             patch_size=16,
@@ -116,14 +116,13 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
             monitor="val_loss",
             mode="min",
             save_top_k=1,
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
+            monitor="val_loss", patience=5, verbose=True, mode="min", strict=False
         )
 
     if model_type == "ViTCVAE_A":
