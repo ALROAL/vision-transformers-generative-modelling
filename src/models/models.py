@@ -502,7 +502,7 @@ class ViTCVAE_A(LightningModule):
         )
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(dim * 2, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
             nn.BatchNorm2d(ngf * 16),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -556,6 +556,7 @@ class ViTCVAE_A(LightningModule):
         return x
 
     def decoder(self, x, labels):
+
         labels = self.label_embedding(labels.float())
         x = torch.cat((x, labels), dim=1)
         x = self.conditioning(x)
