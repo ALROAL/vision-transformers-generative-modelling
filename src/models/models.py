@@ -469,8 +469,9 @@ class ViTCVAE_A(LightningModule):
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
-        self.mean_embedding = nn.Linear(dim + num_classes, dim)
-        self.log_var_embedding = nn.Linear(dim + num_classes, dim)
+        # self.mean_embedding = nn.Linear(dim + num_classes, dim)
+        # self.log_var_embedding = nn.Linear(dim + num_classes, dim)
+        self.label_embedding = nn.Linear(num_classes, dim)
         self.conditioning = nn.Linear(dim + num_classes, dim)
 
         self.to_patch_embedding = nn.Sequential(
@@ -502,7 +503,7 @@ class ViTCVAE_A(LightningModule):
         )
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.ConvTranspose2d(dim*2, ngf * 16, (4, 4), (1, 1), bias=False),
             nn.BatchNorm2d(ngf * 16),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -556,7 +557,7 @@ class ViTCVAE_A(LightningModule):
         return x
 
     def decoder(self, x, labels):
-
+        labels = self.label_embedding(labels)
         x = torch.cat((x, labels), dim=1)
         x = self.conditioning(x)
 
@@ -581,12 +582,12 @@ class ViTCVAE_A(LightningModule):
         x = self.encoder(img, labels)
 
         mean = x[:, 0]
-        mean = torch.cat((mean, labels), dim=1)
-        mean = self.mean_embedding(mean)
+        # mean = torch.cat((mean, labels), dim=1)
+        # mean = self.mean_embedding(mean)
 
         log_var = x[:, 1]
-        log_var = torch.cat((log_var, labels), dim=1)
-        log_var = self.log_var_embedding(log_var)
+        # log_var = torch.cat((log_var, labels), dim=1)
+        # log_var = self.log_var_embedding(log_var)
 
         z = self.reparameterize(mean, log_var)
         out = self.decoder(z, labels)
