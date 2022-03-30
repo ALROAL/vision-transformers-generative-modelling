@@ -106,7 +106,7 @@ def main(
         )
 
     if model_type == "ViTCVAE_R":
-        model = ViTCVAE(
+        model = ViTCVAE_R(
             image_size=(128, 128),
             patch_size=16,
             dim=dim,
