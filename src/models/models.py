@@ -557,7 +557,7 @@ class ViTCVAE_A(LightningModule):
         return x
 
     def decoder(self, x, labels):
-        labels = self.label_embedding(labels)
+        labels = self.label_embedding(labels.float())
         x = torch.cat((x, labels), dim=1)
         x = self.conditioning(x)
 
