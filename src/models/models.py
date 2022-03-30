@@ -652,7 +652,9 @@ class ViTCVAE_A(LightningModule):
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
-        self.class_embedding = nn.Linear(num_classes, dim)
+        self.mean_embedding = nn.Linear(dim + num_classes, dim)
+        self.log_var_embedding = nn.Linear(dim + num_classes, dim)
+        self.conditioning = nn.Linear(dim + num_classes, dim)
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -716,7 +718,7 @@ class ViTCVAE_A(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        # labels = self.class_embedding(labels.float())
+        #labels = self.class_embedding(labels.float())
         # label_tokens = repeat(labels, "b d -> b 1 d")
         # x = torch.cat((label_tokens, x), dim=1)
 
@@ -727,6 +729,8 @@ class ViTCVAE_A(LightningModule):
         x = torch.cat((mean_tokens, x), dim=1)
 
         x += self.pos_embedding
+        # labels = self.class_embedding(labels.float())
+        # x += labels
 
         x = self.dropout(x)
 
@@ -736,9 +740,8 @@ class ViTCVAE_A(LightningModule):
 
     def decoder(self, x, labels):
 
-        labels = self.class_embedding(labels.float())
-
-        x += labels
+        x = torch.cat((x, labels), dim=1)
+        x = self.conditioning(x)
 
         x = rearrange(x, 'b d -> b d 1 1')
 
@@ -761,7 +764,13 @@ class ViTCVAE_A(LightningModule):
         x = self.encoder(img, labels)
 
         mean = x[:, 0]
+        mean = torch.cat((mean, labels), dim=1)
+        mean = self.mean_embedding(mean)
+
         log_var = x[:, 1]
+        log_var = torch.cat((log_var, labels), dim=1)
+        log_var = self.log_var_embedding(log_var)
+
         z = self.reparameterize(mean, log_var)
         out = self.decoder(z, labels)
 
