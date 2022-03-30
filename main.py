@@ -2,8 +2,9 @@ import argparse
 import os
 import sys
 
-from src.models.train_model import main as train
 import torch
+
+from src.models.train_model import main as train
 
 
 def main(
@@ -19,7 +20,8 @@ def main(
     lr: float = 5e-5,
     patch_size: int = 16,
     batch_size: int = 256,
-    optim_choice: str = "Adam"
+    optim_choice: str = "Adam",
+    ngf: int = 8,
 ):
     torch.cuda.empty_cache()
 
@@ -36,7 +38,8 @@ def main(
         lr=lr,
         patch_size=patch_size,
         batch_size=batch_size,
-        optim_choice=optim_choice
+        optim_choice=optim_choice,
+        ngf=ngf,
     )
 
 
@@ -67,9 +70,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mlp_dim", type=int, help="Dimension of the MLP (FeedForward) layer"
     )
-    parser.add_argument(
-        "--kl_weight", type=float, help="Weight for the KL loss"
-    )
+    parser.add_argument("--kl_weight", type=float, help="Weight for the KL loss")
     parser.add_argument(
         "--lr", type=float, help="Learning rate (Currently only for classifier)"
     )
@@ -89,6 +90,11 @@ if __name__ == "__main__":
         type=str,
         help="Which optimizer to use (Adam or SGD) only works for ViT",
     )
+    parser.add_argument(
+        "--ngf",
+        type=int,
+        help="affects size of decoder",
+    )
     args = parser.parse_args()
 
     name = "test"
@@ -99,11 +105,12 @@ if __name__ == "__main__":
     depth = 12
     heads = 16
     mlp_dim = 128
-    kl_weight=1e-5,
+    kl_weight = (1e-5,)
     lr = 5e-5
-    patch_size=16
-    batch_size=256,
+    patch_size = 16
+    batch_size = (256,)
     optim_choice = "Adam"
+    ngf = 8
 
     if args.name:
         name = args.name
@@ -131,6 +138,8 @@ if __name__ == "__main__":
         batch_size = args.batch_size
     if args.optim:
         optim_choice = args.optim
+    if args.ngf:
+        ngf = args.ngf
 
     main(
         name=name,
@@ -146,4 +155,5 @@ if __name__ == "__main__":
         patch_size=patch_size,
         batch_size=batch_size,
         optim_choice=optim_choice,
+        ngf=ngf,
     )

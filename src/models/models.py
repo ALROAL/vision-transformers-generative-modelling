@@ -240,7 +240,7 @@ class DeepViT(LightningModule):
 class ViTVAE(LightningModule):
     def __init__(
         self,
-        image_size=(128,128),
+        image_size=(128, 128),
         patch_size=16,
         dim=256,
         depth=12,
@@ -351,7 +351,7 @@ class ViTVAE(LightningModule):
         return x
 
     def decoder(self, x):
-        x = rearrange(x, 'b d -> b d 1 1')
+        x = rearrange(x, "b d -> b d 1 1")
 
         x = self.dropout(x)
 
@@ -434,31 +434,30 @@ class ViTVAE(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 
-
 class ViTCVAE_A(LightningModule):
     def __init__(
-            self,
-            image_size=(128, 128),
-            patch_size=16,
-            num_classes=4,
-            dim=256,
-            depth=12,
-            heads=16,
-            mlp_dim=256,
-            channels=3,
-            dim_head=64,
-            ngf=64,
-            dropout=0.0,
-            emb_dropout=0.0,
-            kl_weight=1e-5,
-            lr=5e-5,
+        self,
+        image_size=(128, 128),
+        patch_size=16,
+        num_classes=4,
+        dim=256,
+        depth=12,
+        heads=16,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+        kl_weight=1e-5,
+        lr=5e-5,
     ):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
         assert (
-                image_height % patch_height == 0 and image_width % patch_width == 0
+            image_height % patch_height == 0 and image_width % patch_width == 0
         ), "Image dimensions must be divisible by the patch size."
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
@@ -503,7 +502,7 @@ class ViTCVAE_A(LightningModule):
         )
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(dim*2, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.ConvTranspose2d(dim * 2, ngf * 16, (4, 4), (1, 1), bias=False),
             nn.BatchNorm2d(ngf * 16),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -536,7 +535,7 @@ class ViTCVAE_A(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        #labels = self.class_embedding(labels.float())
+        # labels = self.class_embedding(labels.float())
         # label_tokens = repeat(labels, "b d -> b 1 d")
         # x = torch.cat((label_tokens, x), dim=1)
 
@@ -561,7 +560,7 @@ class ViTCVAE_A(LightningModule):
         x = torch.cat((x, labels), dim=1)
         x = self.conditioning(x)
 
-        x = rearrange(x, 'b d -> b d 1 1')
+        x = rearrange(x, "b d -> b d 1 1")
 
         x = self.dropout(x)
 
@@ -605,7 +604,9 @@ class ViTCVAE_A(LightningModule):
         if (num_samples > 1) & (len(labels) == 1):
             labels = repeat(labels, "d -> b d", b=num_samples)
         elif (num_samples > 1) & (len(labels) != 1) & (num_samples != len(labels)):
-            print("Error, the number of labels given much match the number of samples, or be a singular value")
+            print(
+                "Error, the number of labels given much match the number of samples, or be a singular value"
+            )
             return None
 
         samples = self.decoder(z, labels)
@@ -653,30 +654,31 @@ class ViTCVAE_A(LightningModule):
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
+
 class ViTCVAE_R(LightningModule):
     def __init__(
-            self,
-            image_size=(128, 128),
-            patch_size=16,
-            num_classes=4,
-            dim=256,
-            depth=4,
-            heads=8,
-            mlp_dim=256,
-            channels=3,
-            dim_head=64,
-            ngf=8,
-            dropout=0.0,
-            emb_dropout=0.0,
-            kl_weight=1e-5,
-            lr=5e-5,
+        self,
+        image_size=(128, 128),
+        patch_size=16,
+        num_classes=4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf=8,
+        dropout=0.0,
+        emb_dropout=0.0,
+        kl_weight=1e-5,
+        lr=5e-5,
     ):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
         assert (
-                image_height % patch_height == 0 and image_width % patch_width == 0
+            image_height % patch_height == 0 and image_width % patch_width == 0
         ), "Image dimensions must be divisible by the patch size."
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
@@ -736,8 +738,6 @@ class ViTCVAE_R(LightningModule):
             # state size. (nc) x 128 x 128
         )
 
-        
-
     def encoder(self, img, labels):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
@@ -749,7 +749,7 @@ class ViTCVAE_R(LightningModule):
         x = torch.cat((mean_tokens, x), dim=1)
 
         label_emb = self.label_embedding(labels)
-        label_embs = repeat(label_emb, "b c -> b p c", p=n+2)
+        label_embs = repeat(label_emb, "b c -> b p c", p=n + 2)
 
         x += label_embs
 
@@ -765,7 +765,7 @@ class ViTCVAE_R(LightningModule):
 
         x += self.label_embedding(labels)
 
-        x = rearrange(x, 'b d -> b d 1 1')
+        x = rearrange(x, "b d -> b d 1 1")
 
         x = self.dropout(x)
 
@@ -801,11 +801,6 @@ class ViTCVAE_R(LightningModule):
         :return: (Tensor)
         """
         z = torch.randn(num_samples, self.dim)
-        if (num_samples > 1) & (len(labels) == 1):
-            labels = repeat(labels, "d -> b d", b=num_samples)
-        elif (num_samples > 1) & (len(labels) != 1) & (num_samples != len(labels)):
-            print("Error, the number of labels given much match the number of samples, or be a singular value")
-            return None
 
         samples = self.decoder(z, labels)
 
@@ -822,7 +817,7 @@ class ViTCVAE_R(LightningModule):
 
     def training_step(self, batch, batch_idx):
         data, target = batch
-        target=target.to(torch.float)
+        target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
         loss = self.elbo(recons_x, x, mu, logvar)
         self.log("train_loss", loss)
@@ -830,14 +825,14 @@ class ViTCVAE_R(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
-        target=target.to(torch.float)
+        target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
         loss = self.elbo(recons_x, x, mu, logvar)
         self.log("val_loss", loss)
 
     def test_step(self, batch, batch_idx):
         data, target = batch
-        target=target.to(torch.float)
+        target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
         loss = self.elbo(recons_x, x, mu, logvar)
         self.log("test_loss", loss)

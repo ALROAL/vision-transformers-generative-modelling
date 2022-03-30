@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 import pytorch_lightning as pl
@@ -10,34 +11,34 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10, MNIST, CelebA
 
 from src import _PATH_DATA
-from typing import Callable, List, Optional, Union
 
 
 class DebuggedCelebA(CelebA):
     def __init__(
-            self,
-            root: str = _PATH_DATA,
-            split: str = "train",
-            target_type: Union[List[str], str] = "attr",
-            transform: Optional[Callable] = None,
-            download: bool = False,
+        self,
+        root: str = _PATH_DATA,
+        split: str = "train",
+        target_type: Union[List[str], str] = "attr",
+        transform: Optional[Callable] = None,
+        download: bool = False,
     ):
-
         def target_transform(target):
             col_idx_1 = self.attr_names.index("Male")
             col_idx_2 = self.attr_names.index("Young")
-            if target[col_idx_1]==0:
-                if target[col_idx_2]==0:
-                    return torch.tensor([1,0,0,0])
+            if target[col_idx_1] == 0:
+                if target[col_idx_2] == 0:
+                    return torch.tensor([1, 0, 0, 0])
                 else:
-                    return torch.tensor([0,1,0,0])
+                    return torch.tensor([0, 1, 0, 0])
             else:
-                if target[col_idx_2]==0:
-                    return torch.tensor([0,0,1,0])
+                if target[col_idx_2] == 0:
+                    return torch.tensor([0, 0, 1, 0])
                 else:
-                    return torch.tensor([0,0,0,1])
+                    return torch.tensor([0, 0, 0, 1])
 
-        super().__init__(root, split, target_type, transform, target_transform, download)
+        super().__init__(
+            root, split, target_type, transform, target_transform, download
+        )
 
     def _check_integrity(self):
         return True
@@ -45,7 +46,7 @@ class DebuggedCelebA(CelebA):
 
 class CelebADataModule(pl.LightningDataModule):
     def __init__(
-            self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -58,13 +59,20 @@ class CelebADataModule(pl.LightningDataModule):
         DebuggedCelebA(self.data_dir, split="test", download=False)
 
     def setup(self):
-        transforms_seq = transforms.Compose([transforms.Resize((128, 128)),
-                                             transforms.ToTensor()])
-        self.celeb_test = DebuggedCelebA(self.data_dir, split="test", transform=transforms_seq)
+        transforms_seq = transforms.Compose(
+            [transforms.Resize((128, 128)), transforms.ToTensor()]
+        )
+        self.celeb_test = DebuggedCelebA(
+            self.data_dir, split="test", transform=transforms_seq
+        )
 
-        self.celeb_train = DebuggedCelebA(self.data_dir, split="train", transform=transforms_seq)
+        self.celeb_train = DebuggedCelebA(
+            self.data_dir, split="train", transform=transforms_seq
+        )
 
-        self.celeb_val = DebuggedCelebA(self.data_dir, split="valid", transform=transforms_seq)
+        self.celeb_val = DebuggedCelebA(
+            self.data_dir, split="valid", transform=transforms_seq
+        )
 
     def train_dataloader(self):
         return DataLoader(
@@ -101,7 +109,7 @@ class CelebADataModule(pl.LightningDataModule):
 
 class MNISTDataModule(pl.LightningDataModule):
     def __init__(
-            self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -169,7 +177,7 @@ class MNISTDataModule(pl.LightningDataModule):
 
 class CIFARDataModule(pl.LightningDataModule):
     def __init__(
-            self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
     ):
         super().__init__()
         self.data_dir = data_dir

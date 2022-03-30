@@ -11,8 +11,8 @@ from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
-from src.data.make_dataset import CIFARDataModule, CelebADataModule
-from src.models.models import DeepViT, ViT, ViTVAE, ViTCVAE_R, ViTCVAE_A
+from src.data.make_dataset import CelebADataModule, CIFARDataModule
+from src.models.models import DeepViT, ViT, ViTCVAE_A, ViTCVAE_R, ViTVAE
 
 
 def main(
@@ -29,8 +29,23 @@ def main(
     patch_size: int = 16,
     batch_size: int = 256,
     optim_choice: str = "Adam",
+    ngf: int = 8,
 ):
-    filename = "_".join([str(p) for p in [model_type, patch_size, dim, depth, heads, mlp_dim, batch_size, kl_weight]])
+    filename = "_".join(
+        [
+            str(p)
+            for p in [
+                model_type,
+                patch_size,
+                dim,
+                depth,
+                heads,
+                mlp_dim,
+                batch_size,
+                kl_weight,
+            ]
+        ]
+    )
 
     if model_type == "ViT":
         model = ViT(
@@ -91,7 +106,7 @@ def main(
             depth=depth,
             heads=heads,
             mlp_dim=mlp_dim,
-            kl_weight=kl_weight
+            kl_weight=kl_weight,
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
@@ -113,6 +128,7 @@ def main(
             depth=depth,
             heads=heads,
             mlp_dim=mlp_dim,
+            ngf=nfg,
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
