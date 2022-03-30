@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CIFARDataModule, CelebADataModule
-from src.models.models import DeepViT, ViT, ViTVAE, ViTCVAE, ViTCVAE_A
+from src.models.models import DeepViT, ViT, ViTVAE, ViTCVAE_R, ViTCVAE_A
 
 
 def main(
