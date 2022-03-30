@@ -128,7 +128,7 @@ def main(
             depth=depth,
             heads=heads,
             mlp_dim=mlp_dim,
-            ngf=nfg,
+            ngf=ngf,
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
