@@ -670,7 +670,7 @@ class ViTCVAE_R(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         kl_weight=0.8,
-        lr=5e-5,
+        lr=1e-4,
     ):
         super().__init__()
         image_height, image_width = pair(image_size)
@@ -800,15 +800,6 @@ class ViTCVAE_R(LightningModule):
         :return: (Tensor)
         """
 
-        # if all:
-        #     z = torch.randn(num_samples, self.dim)
-        #     samples_1 = self.decoder(z, torch.Tensor([1,0,0,0]))
-        #     samples_2 = self.decoder(z, torch.Tensor([0,1,0,0]))
-        #     samples_3 = self.decoder(z, torch.Tensor([0,0,1,0]))
-        #     samples_4 = self.decoder(z, torch.Tensor([0,0,0,1]))
-        #     return samples_1,samples_2,samples_3,samples_4
-
-
         z = torch.randn(num_samples, self.dim)
 
         samples = self.decoder(z, labels)
@@ -863,22 +854,10 @@ class ViTCVAE_R(LightningModule):
             'elbo': elbo,
             'kl': kl.mean(),
             'recon_loss': recon_loss.mean(),
-            'reconstruction': recon_loss.mean(),
-            'kl': kl.mean(),
         })
 
         return elbo
 
-    # def training_step(self, batch, batch_idx):
-    #     data, target = batch
-    #     target = target.to(torch.float)
-    #     recons_x, x, mu, logvar = self(data, target)
-    #     bce, kld_loss = self.elbo(recons_x, x, mu, logvar)
-    #     loss = bce + self.kl_weight * kld_loss
-    #     self.log("train_loss", loss)
-    #     self.log("train_bce_loss", bce)
-    #     self.log("train_kld_loss", kld_loss)
-    #     return loss
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
@@ -900,8 +879,6 @@ class ViTCVAE_R(LightningModule):
             'val_elbo': elbo,
             'val_kl': kl.mean(),
             'val_recon_loss': recon_loss.mean(),
-            'val_reconstruction': recon_loss.mean(),
-            'val_kl': kl.mean(),
         })
         
 
