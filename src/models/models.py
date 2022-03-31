@@ -830,19 +830,23 @@ class ViTCVAE_R(LightningModule):
         data, target = batch
         target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
-        mse,kld_loss = self.elbo(recons_x, x, mu, logvar)
+        mse, kld_loss = self.elbo(recons_x, x, mu, logvar)
         loss = mse + self.kl_weight * kld_loss
         self.log("train_loss", loss)
-        self.log("train_mse_loss",mse)
-        self.log("train_kld_loss",kld_loss)
+        self.log("train_mse_loss", mse)
+        self.log("train_kld_loss", kld_loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
         target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
-        loss = self.elbo(recons_x, x, mu, logvar)
+        mse, kld_loss = self.elbo(recons_x, x, mu, logvar)
+        loss = mse + self.kl_weight * kld_loss
         self.log("val_loss", loss)
+        self.log("val_mse_loss", mse)
+        self.log("val_kld_loss", kld_loss)
+        
 
     def test_step(self, batch, batch_idx):
         data, target = batch
