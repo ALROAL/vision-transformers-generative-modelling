@@ -687,6 +687,7 @@ class ViTCVAE_R(LightningModule):
         self.kl_weight = kl_weight
         self.save_hyperparameters()
 
+        self.log_scale = nn.Parameter(torch.Tensor([0.0]))
         self.dim = dim
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
@@ -789,7 +790,7 @@ class ViTCVAE_R(LightningModule):
         z = self.reparameterize(mean, log_var)
         out = self.decoder(z, labels)
 
-        return img, out, mean, log_var
+        return img, out, mean, log_var, z
 
     def sample(self, num_samples, labels):
         """
@@ -816,28 +817,68 @@ class ViTCVAE_R(LightningModule):
 
         return samples
 
-    def elbo(self, recons_x, x, mu, log_var):
-        """
-        Computes the VAE loss function.
-        """
-        # mse = F.mse_loss(recons_x, x)
-        
-        bce = F.binary_cross_entropy_with_logits(recons_x, x)
+    def gaussian_likelihood(self, x_hat, logscale, x):
+        scale = torch.exp(logscale)
+        mean = x_hat
+        dist = torch.distributions.Normal(mean, scale)
 
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+        # measure prob of seeing image under p(x|z)
+        log_pxz = dist.log_prob(x)
+        return log_pxz.sum(dim=(1, 2, 3))
 
-        return bce, kld_loss
+    def kl_divergence(self, z, mu, std):
+        # --------------------------
+        # Monte carlo KL divergence
+        # --------------------------
+        # 1. define the first two probabilities (in this case Normal for both)
+        p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
+        q = torch.distributions.Normal(mu, std)
+
+        # 2. get the probabilities from the equation
+        log_qzx = q.log_prob(z)
+        log_pz = p.log_prob(z)
+
+        # kl
+        kl = (log_qzx - log_pz)
+        kl = kl.sum(-1)
+        return kl
 
     def training_step(self, batch, batch_idx):
         data, target = batch
         target = target.to(torch.float)
-        recons_x, x, mu, logvar = self(data, target)
-        bce, kld_loss = self.elbo(recons_x, x, mu, logvar)
-        loss = bce + self.kl_weight * kld_loss
-        self.log("train_loss", loss)
-        self.log("train_bce_loss", bce)
-        self.log("train_kld_loss", kld_loss)
-        return loss
+        recons_x, x, mu, log_var, z = self(data, target)
+        std = torch.exp(0.5 * log_var)
+
+        # reconstruction loss
+        recon_loss = self.gaussian_likelihood(recons_x, self.log_scale, x)
+
+        # kl
+        kl = self.kl_divergence(z, mu, std)
+
+        # elbo
+        elbo = (kl - recon_loss)
+        elbo = elbo.mean()
+
+        self.log_dict({
+            'elbo': elbo,
+            'kl': kl.mean(),
+            'recon_loss': recon_loss.mean(),
+            'reconstruction': recon_loss.mean(),
+            'kl': kl.mean(),
+        })
+
+        return elbo
+
+    # def training_step(self, batch, batch_idx):
+    #     data, target = batch
+    #     target = target.to(torch.float)
+    #     recons_x, x, mu, logvar = self(data, target)
+    #     bce, kld_loss = self.elbo(recons_x, x, mu, logvar)
+    #     loss = bce + self.kl_weight * kld_loss
+    #     self.log("train_loss", loss)
+    #     self.log("train_bce_loss", bce)
+    #     self.log("train_kld_loss", kld_loss)
+    #     return loss
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
