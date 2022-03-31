@@ -822,7 +822,7 @@ class ViTCVAE_R(LightningModule):
         """
         # mse = F.mse_loss(recons_x, x)
         
-        bce = F.binary_cross_entropy(recons_x, x)
+        bce = F.binary_cross_entropy_with_logits(recons_x, x)
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
