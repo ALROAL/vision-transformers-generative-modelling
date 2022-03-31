@@ -900,7 +900,7 @@ class ViTCVAE_R(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2,factor=0.5)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
