@@ -467,7 +467,7 @@ class ViTCVAE_A(LightningModule):
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 3, dim))
         # self.mean_embedding = nn.Linear(dim + num_classes, dim)
         # self.log_var_embedding = nn.Linear(dim + num_classes, dim)
         self.label_embedding = nn.Linear(num_classes, dim)
@@ -535,9 +535,9 @@ class ViTCVAE_A(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        # labels = self.class_embedding(labels.float())
-        # label_tokens = repeat(labels, "b d -> b 1 d")
-        # x = torch.cat((label_tokens, x), dim=1)
+        labels = self.label_embedding(labels.float())
+        label_tokens = repeat(labels, "b d -> b 1 d")
+        x = torch.cat((label_tokens, x), dim=1)
 
         log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
