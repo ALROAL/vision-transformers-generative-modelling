@@ -132,14 +132,14 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
-            filename='ViTCVAE-{epoch}-{val_loss:.3f}',
+            filename='ViTCVAE-{epoch}-{val_elbo:.3f}',
             monitor="val_elbo",
             mode="min",
             save_top_k=1,
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_loss", patience=10, verbose=True, mode="min", strict=False
+            monitor="val_elbo", patience=10, verbose=True, mode="min", strict=False
         )
 
     if model_type == "ViTCVAE_A":
@@ -170,7 +170,7 @@ def main(
 
     wandb_logger = WandbLogger(project="ViT-VAE", name=name)
 
-    seed_everything(42, workers=True)
+    seed_everything(1234, workers=True)
 
     trainer = Trainer(
         max_epochs=max_epochs,
