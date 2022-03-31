@@ -132,6 +132,7 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
+            filename='batch_size={bs}-{epoch}-{val_loss:3f}'.format(bs=batch_size),
             monitor="val_loss",
             mode="min",
             save_top_k=1,

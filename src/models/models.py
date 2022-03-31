@@ -792,16 +792,28 @@ class ViTCVAE_R(LightningModule):
 
         return img, out, mean, log_var
 
-    def sample(self, num_samples, labels):
+    def sample(self, num_samples, labels,all=False):
         """
         Samples from the latent space and return the corresponding
         image space map.
         :param num_samples: (Int) Number of samples
         :return: (Tensor)
         """
+
+        if all:
+            z = torch.randn(num_samples, self.dim)
+            samples_1 = self.decoder(z, torch.Tensor([1,0,0,0]))
+            samples_2 = self.decoder(z, torch.Tensor([0,1,0,0]))
+            samples_3 = self.decoder(z, torch.Tensor([0,0,1,0]))
+            samples_4 = self.decoder(z, torch.Tensor([0,0,0,1]))
+            return samples_1,samples_2,samples_3,samples_4
+
+
         z = torch.randn(num_samples, self.dim)
 
         samples = self.decoder(z, labels)
+
+
 
         return samples
 
@@ -809,17 +821,20 @@ class ViTCVAE_R(LightningModule):
         """
         Computes the VAE loss function.
         """
-        kl_divergence = 0.5 * torch.sum(-1 - logvar + mu.pow(2) + logvar.exp())
-        MSE = nn.MSELoss(size_average=True)
-        mse = MSE(recons_x, x)
-        return mse + self.kl_weight * kl_divergence
+        mse = F.mse_loss(recons_x, x)
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+
+        return mse, kld_loss
 
     def training_step(self, batch, batch_idx):
         data, target = batch
         target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
-        loss = self.elbo(recons_x, x, mu, logvar)
+        mse,kld_loss = self.elbo(recons_x, x, mu, logvar)
+        loss = mse + self.kl_weight * kld_loss
         self.log("train_loss", loss)
+        self.log("train_mse_loss",mse)
+        self.log("train_kld_loss",kld_loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -838,7 +853,7 @@ class ViTCVAE_R(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=4)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
