@@ -669,7 +669,7 @@ class ViTCVAE_R(LightningModule):
         ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
-        kl_weight=0.5,
+        kl_weight=0.8,
         lr=5e-5,
     ):
         super().__init__()
@@ -741,16 +741,15 @@ class ViTCVAE_R(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
+        label_emb = self.label_embedding(labels)
+        label_embs = repeat(label_emb, "b c -> b p c", p=n)
+        x += label_embs
+
         log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
 
         mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
         x = torch.cat((mean_tokens, x), dim=1)
-
-        label_emb = self.label_embedding(labels)
-        label_embs = repeat(label_emb, "b c -> b p c", p=n + 2)
-
-        x += label_embs
 
         x += self.pos_embedding
 
@@ -792,7 +791,7 @@ class ViTCVAE_R(LightningModule):
 
         return img, out, mean, log_var
 
-    def sample(self, num_samples, labels,all=False):
+    def sample(self, num_samples, labels):
         """
         Samples from the latent space and return the corresponding
         image space map.
@@ -800,13 +799,13 @@ class ViTCVAE_R(LightningModule):
         :return: (Tensor)
         """
 
-        if all:
-            z = torch.randn(num_samples, self.dim)
-            samples_1 = self.decoder(z, torch.Tensor([1,0,0,0]))
-            samples_2 = self.decoder(z, torch.Tensor([0,1,0,0]))
-            samples_3 = self.decoder(z, torch.Tensor([0,0,1,0]))
-            samples_4 = self.decoder(z, torch.Tensor([0,0,0,1]))
-            return samples_1,samples_2,samples_3,samples_4
+        # if all:
+        #     z = torch.randn(num_samples, self.dim)
+        #     samples_1 = self.decoder(z, torch.Tensor([1,0,0,0]))
+        #     samples_2 = self.decoder(z, torch.Tensor([0,1,0,0]))
+        #     samples_3 = self.decoder(z, torch.Tensor([0,0,1,0]))
+        #     samples_4 = self.decoder(z, torch.Tensor([0,0,0,1]))
+        #     return samples_1,samples_2,samples_3,samples_4
 
 
         z = torch.randn(num_samples, self.dim)
@@ -821,19 +820,22 @@ class ViTCVAE_R(LightningModule):
         """
         Computes the VAE loss function.
         """
-        mse = F.mse_loss(recons_x, x)
+        # mse = F.mse_loss(recons_x, x)
+        
+        bce = F.binary_cross_entropy(recons_x, x)
+
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
-        return mse, kld_loss
+        return bce, kld_loss
 
     def training_step(self, batch, batch_idx):
         data, target = batch
         target = target.to(torch.float)
         recons_x, x, mu, logvar = self(data, target)
-        mse, kld_loss = self.elbo(recons_x, x, mu, logvar)
-        loss = mse + self.kl_weight * kld_loss
+        bce, kld_loss = self.elbo(recons_x, x, mu, logvar)
+        loss = bce + self.kl_weight * kld_loss
         self.log("train_loss", loss)
-        self.log("train_mse_loss", mse)
+        self.log("train_bce_loss", bce)
         self.log("train_kld_loss", kld_loss)
         return loss
 
