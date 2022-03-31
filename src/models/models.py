@@ -669,7 +669,7 @@ class ViTCVAE_R(LightningModule):
         ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
-        kl_weight=1e-5,
+        kl_weight=0.5,
         lr=5e-5,
     ):
         super().__init__()

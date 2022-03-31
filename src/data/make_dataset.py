@@ -24,7 +24,7 @@ class DebuggedCelebA(CelebA):
     ):
         def target_transform(target):
             col_idx_1 = self.attr_names.index("Male")
-            col_idx_2 = self.attr_names.index("Young")
+            col_idx_2 = self.attr_names.index("Pale_Skin")
             if target[col_idx_1] == 0:
                 if target[col_idx_2] == 0:
                     return torch.tensor([1, 0, 0, 0])
