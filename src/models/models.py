@@ -883,12 +883,26 @@ class ViTCVAE_R(LightningModule):
     def validation_step(self, batch, batch_idx):
         data, target = batch
         target = target.to(torch.float)
-        recons_x, x, mu, logvar = self(data, target)
-        mse, kld_loss = self.elbo(recons_x, x, mu, logvar)
-        loss = mse + self.kl_weight * kld_loss
-        self.log("val_loss", loss)
-        self.log("val_mse_loss", mse)
-        self.log("val_kld_loss", kld_loss)
+        recons_x, x, mu, log_var, z = self(data, target)
+        std = torch.exp(0.5 * log_var)
+
+        # reconstruction loss
+        recon_loss = self.gaussian_likelihood(recons_x, self.log_scale, x)
+
+        # kl
+        kl = self.kl_divergence(z, mu, std)
+
+        # elbo
+        elbo = (kl - recon_loss)
+        elbo = elbo.mean()
+
+        self.log_dict({
+            'val_elbo': elbo,
+            'val_kl': kl.mean(),
+            'val_recon_loss': recon_loss.mean(),
+            'val_reconstruction': recon_loss.mean(),
+            'val_kl': kl.mean(),
+        })
         
 
     def test_step(self, batch, batch_idx):
@@ -905,7 +919,7 @@ class ViTCVAE_R(LightningModule):
             "scheduler": lr_scheduler,
             "interval": "epoch",
             "frequency": 1,
-            "monitor": "val_loss",
+            "monitor": "val_elbo",
             "strict": False,
         }
 
