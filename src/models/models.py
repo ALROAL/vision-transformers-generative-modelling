@@ -817,7 +817,7 @@ class ViTCVAE_R(LightningModule):
 
         return samples
 
-    def elbo(self, recons_x, x, mu, logvar):
+    def elbo(self, recons_x, x, mu, log_var):
         """
         Computes the VAE loss function.
         """
