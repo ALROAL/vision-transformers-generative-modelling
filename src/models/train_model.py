@@ -132,7 +132,7 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
-            filename='ViTCVAE-{epoch}-{val_elbo:.3f}',
+            filename='ViTCVAE-{epoch}-{val_loss:.3f}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
