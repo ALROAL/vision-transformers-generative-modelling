@@ -669,32 +669,32 @@ class ViTCVAE_R(LightningModule):
         ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
-        kl_weight=0.8,
+        kl_weight=0.5,
         lr=1e-4,
     ):
         super().__init__()
-        image_height, image_width = pair(image_size)
+        self.image_height, self.image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
         assert (
-            image_height % patch_height == 0 and image_width % patch_width == 0
+            self.image_height % patch_height == 0 and self.image_width % patch_width == 0
         ), "Image dimensions must be divisible by the patch size."
 
-        num_patches = (image_height // patch_height) * (image_width // patch_width)
-        patch_dim = channels * patch_height * patch_width
+        num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
+        patch_dim = (1+channels) * patch_height * patch_width
 
         self.lr = lr
         self.kl_weight = kl_weight
         self.save_hyperparameters()
 
-        self.log_scale = nn.Parameter(torch.Tensor([0.0]))
         self.dim = dim
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
 
-        self.label_embedding = nn.Linear(num_classes, dim)
+        self.label_embedding = nn.Linear(num_classes, self.image_height*self.image_width)
+        self.decoder_input = nn.Linear(dim + num_classes, dim)
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -738,13 +738,13 @@ class ViTCVAE_R(LightningModule):
             # state size. (nc) x 128 x 128
         )
 
-    def encoder(self, img, labels):
+    def encoder(self, img):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        label_emb = self.label_embedding(labels)
-        label_embs = repeat(label_emb, "b c -> b p c", p=n)
-        x += label_embs
+        # label_emb = self.label_embedding(labels)
+        # label_embs = repeat(label_emb, "b c -> b p c", p=n)
+        # x += label_embs
 
         log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
@@ -760,17 +760,11 @@ class ViTCVAE_R(LightningModule):
 
         return x
 
-    def decoder(self, x, labels):
-
-        x += self.label_embedding(labels)
-
-        x = rearrange(x, "b d -> b d 1 1")
-
-        x = self.dropout(x)
-
-        x = self.decoder_conv(x)
-
-        return x
+    def decoder(self, z):
+        result = self.decoder_input(z)
+        result = rearrange(result, "b d -> b d 1 1")
+        result = self.decoder_conv(result)
+        return result
 
     def reparameterize(self, mean, log_var):
         std = torch.exp(0.5 * log_var)
@@ -781,16 +775,19 @@ class ViTCVAE_R(LightningModule):
         return z
 
     def forward(self, img, labels):
-
-        x = self.encoder(img, labels)
+        label_embeddings = self.label_embedding(labels)
+        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
+        x = torch.cat([img,label_embeddings],dim = 1)
+        x = self.encoder(x)
 
         mean = x[:, 0]
         log_var = x[:, 1]
 
         z = self.reparameterize(mean, log_var)
-        out = self.decoder(z, labels)
+        z = torch.cat([z, labels], dim = 1)
+        x = self.decoder(z)
 
-        return img, out, mean, log_var, z
+        return x, img, mean, log_var
 
     def sample(self, num_samples, labels):
         """
@@ -801,93 +798,48 @@ class ViTCVAE_R(LightningModule):
         """
 
         z = torch.randn(num_samples, self.dim)
-
-        samples = self.decoder(z, labels)
-
-
-
+        z = torch.cat([z, labels], dim = 1)
+        samples = self.decoder(z)
         return samples
 
-    def gaussian_likelihood(self, x_hat, logscale, x):
-        scale = torch.exp(logscale)
-        mean = x_hat
-        dist = torch.distributions.Normal(mean, scale)
+    def loss_function(self,recons_x, x, mu, log_var):
+        """
+        Computes the VAE loss function.
+        """
+        recons_loss =F.mse_loss(recons_x, x)
 
-        # measure prob of seeing image under p(x|z)
-        log_pxz = dist.log_prob(x)
-        return log_pxz.sum(dim=(1, 2, 3))
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
-    def kl_divergence(self, z, mu, std):
-        # --------------------------
-        # Monte carlo KL divergence
-        # --------------------------
-        # 1. define the first two probabilities (in this case Normal for both)
-        p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
-        q = torch.distributions.Normal(mu, std)
-
-        # 2. get the probabilities from the equation
-        log_qzx = q.log_prob(z)
-        log_pz = p.log_prob(z)
-
-        # kl
-        kl = (log_qzx - log_pz)
-        kl = kl.sum(-1)
-        return kl
+        loss = recons_loss + self.kl_weight * kld_loss
+        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
 
     def training_step(self, batch, batch_idx):
         data, target = batch
-        target = target.to(torch.float)
-        recons_x, x, mu, log_var, z = self(data, target)
-        std = torch.exp(0.5 * log_var)
-
-        # reconstruction loss
-        recon_loss = self.gaussian_likelihood(recons_x, self.log_scale, x)
-
-        # kl
-        kl = self.kl_divergence(z, mu, std)
-
-        # elbo
-        elbo = (kl - recon_loss)
-        elbo = elbo.mean()
-
-        self.log_dict({
-            'elbo': elbo,
-            'kl': kl.mean(),
-            'recon_loss': recon_loss.mean(),
-        })
-
-        return elbo
-
+        recons_x, x, mu, log_var = self(data, target)
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict(loss_dict)
+        return loss_dict['loss']
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
-        target = target.to(torch.float)
-        recons_x, x, mu, log_var, z = self(data, target)
-        std = torch.exp(0.5 * log_var)
-
-        # reconstruction loss
-        recon_loss = self.gaussian_likelihood(recons_x, self.log_scale, x)
-
-        # kl
-        kl = self.kl_divergence(z, mu, std)
-
-        # elbo
-        elbo = (kl - recon_loss)
-        elbo = elbo.mean()
-
+        recons_x, x, mu, log_var = self(data, target)
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
         self.log_dict({
-            'val_elbo': elbo,
-            'val_kl': kl.mean(),
-            'val_recon_loss': recon_loss.mean(),
+            'val_loss': loss_dict['loss'],
+            'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'val_KLD': loss_dict['KLD']
         })
-        
-
+    
     def test_step(self, batch, batch_idx):
         data, target = batch
-        target = target.to(torch.float)
-        recons_x, x, mu, logvar = self(data, target)
-        loss = self.elbo(recons_x, x, mu, logvar)
-        self.log("test_loss", loss)
+        recons_x, x, mu, log_var = self(data, target)
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'test_loss': loss_dict['loss'],
+            'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'test_KLD': loss_dict['KLD']
+        })
+
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
@@ -896,7 +848,7 @@ class ViTCVAE_R(LightningModule):
             "scheduler": lr_scheduler,
             "interval": "epoch",
             "frequency": 1,
-            "monitor": "val_elbo",
+            "monitor": "val_loss",
             "strict": False,
         }
 

@@ -133,13 +133,13 @@ def main(
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
             filename='ViTCVAE-{epoch}-{val_elbo:.3f}',
-            monitor="val_elbo",
+            monitor="val_loss",
             mode="min",
             save_top_k=1,
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_elbo", patience=10, verbose=True, mode="min", strict=False
+            monitor="val_loss", patience=10, verbose=True, mode="min", strict=False
         )
 
     if model_type == "ViTCVAE_A":
