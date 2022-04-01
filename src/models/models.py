@@ -789,7 +789,7 @@ class ViTCVAE_R(LightningModule):
 
         return x, img, mean, log_var
 
-    def sample(self, num_samples, labels):
+    def sample(self, num_samples, label):
         """
         Samples from the latent space and return the corresponding
         image space map.
@@ -798,6 +798,7 @@ class ViTCVAE_R(LightningModule):
         """
 
         z = torch.randn(num_samples, self.dim)
+        labels = repeat(label, "d -> n d",n=num_samples)
         z = torch.cat([z, labels], dim = 1)
         samples = self.decoder(z)
         return samples
