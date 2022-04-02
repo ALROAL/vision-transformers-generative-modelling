@@ -813,7 +813,7 @@ class ViTCVAE_R(LightningModule):
         Computes the VAE loss function.
         """
         if self.current_epoch == 1 & self.first_epoch:
-            self.T_max = int(self.global_step/2)
+            self.T_max = self.global_step
             self.first_epoch = False
             print(self.T_max)
 
