@@ -134,10 +134,10 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
-            filename='ViTCVAE-{epoch}-{val_loss:.3f}',
+            filename='ViTCVAE-{epoch}-{val_loss:.4f}',
             monitor="val_loss",
             mode="min",
-            save_top_k=1,
+            save_top_k=2,
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(

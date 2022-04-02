@@ -670,7 +670,6 @@ class ViTCVAE_R(LightningModule):
         ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
-        kl_weight=0.5,
         lr=1e-4,
     ):
         super().__init__()
@@ -685,12 +684,11 @@ class ViTCVAE_R(LightningModule):
         patch_dim = (1+channels) * patch_height * patch_width
 
         self.lr = lr
-        # self.kl_weight = kl_weight
         self.save_hyperparameters()
 
         self.n_min = 1e-6
         self.n_max = 1e-3
-        self.T_max = 200
+        self.T_max = 1
         self.pi = np.pi
         self.first_epoch = True
 
