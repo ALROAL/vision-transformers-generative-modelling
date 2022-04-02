@@ -103,3 +103,5 @@ target/
 /notebooks/wandb
 /data.zip
 /data
+
+submit_r.sh
