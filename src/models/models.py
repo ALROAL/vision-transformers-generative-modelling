@@ -469,10 +469,8 @@ class ViTCVAE_A(LightningModule):
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 3, dim))
-        # self.mean_embedding = nn.Linear(dim + num_classes, dim)
-        # self.log_var_embedding = nn.Linear(dim + num_classes, dim)
-        self.label_embedding = nn.Linear(num_classes, dim)
-        self.conditioning = nn.Linear(dim*2, dim)
+        self.label_embedding = nn.Linear(num_classes, image_height * image_width)
+        self.conditioning = nn.Linear(dim + num_classes, dim)
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -482,25 +480,13 @@ class ViTCVAE_A(LightningModule):
             ),
             nn.Linear(patch_dim, dim),
         )
-        self.back_to_img = nn.Sequential(
-            nn.Linear(dim, channels * image_height * image_width),
-            Rearrange(
-                "b 1 (p1 p2 c) -> b c p1 p2",
-                c=channels,
-                p1=image_height,
-                p2=image_width,
-            ),
-        )
 
         self.dropout = nn.Dropout(emb_dropout)
 
         self.encoder_transformer = Transformer(
             dim, depth, heads, dim_head, mlp_dim, dropout
         )
-        # For now we use the same transformer architecture for both the encoder and the decoder, but this could change.
-        self.decoder_transformer = Transformer(
-            dim, depth, heads, dim_head, mlp_dim, dropout
-        )
+
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(dim*2, ngf * 16, (4, 4), (1, 1), bias=False),
@@ -529,16 +515,22 @@ class ViTCVAE_A(LightningModule):
         )
 
         self.lr = lr
-        self.kl_weight = kl_weight
+        # self.kl_weight = kl_weight
+
+        self.n_min = 1e-8
+        self.n_max = 1
+        self.T_max = 100
+        self.pi = np.pi
         self.save_hyperparameters()
 
     def encoder(self, img, labels):
-        x = self.to_patch_embedding(img)
-        b, n, _ = x.shape
 
         labels = self.label_embedding(labels.float())
-        label_tokens = repeat(labels, "b d -> b 1 d")
-        x = torch.cat((label_tokens, x), dim=1)
+        labels = rearrange(labels, "b (h w) -> b 1 h w")
+        img = torch.cat((img, labels), dim=1)
+
+        x = self.to_patch_embedding(img)
+        b, n, _ = x.shape
 
         log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
@@ -556,9 +548,8 @@ class ViTCVAE_A(LightningModule):
 
     def decoder(self, x, labels):
 
-        labels = self.label_embedding(labels.float())
         x = torch.cat((x, labels), dim=1)
-        #x = self.conditioning(x)
+        x = self.conditioning(x)
 
         x = rearrange(x, "b d -> b d 1 1")
 
@@ -581,69 +572,77 @@ class ViTCVAE_A(LightningModule):
         x = self.encoder(img, labels)
 
         mean = x[:, 0]
-        # mean = torch.cat((mean, labels), dim=1)
-        # mean = self.mean_embedding(mean)
-
         log_var = x[:, 1]
-        # log_var = torch.cat((log_var, labels), dim=1)
-        # log_var = self.log_var_embedding(log_var)
 
         z = self.reparameterize(mean, log_var)
         out = self.decoder(z, labels)
 
         return img, out, mean, log_var
 
-    def sample(self, num_samples, labels):
+    def sample(self, num_samples, label):
         """
         Samples from the latent space and return the corresponding
         image space map.
         :param num_samples: (Int) Number of samples
         :return: (Tensor)
         """
+
         z = torch.randn(num_samples, self.dim)
-        if (num_samples > 1) & (len(labels) == 1):
-            labels = repeat(labels, "d -> b d", b=num_samples)
-        elif (num_samples > 1) & (len(labels) != 1) & (num_samples != len(labels)):
-            print(
-                "Error, the number of labels given much match the number of samples, or be a singular value"
-            )
-            return None
-
-        samples = self.decoder(z, labels)
-
+        labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, labels], dim = 1)
+        samples = self.decoder(z)
         return samples
 
-    def elbo(self, recons_x, x, mu, logvar):
+    def loss_function(self,recons_x, x, mu, log_var):
         """
         Computes the VAE loss function.
         """
-        kl_divergence = 0.5 * torch.sum(-1 - logvar + mu.pow(2) + logvar.exp())
-        MSE = nn.MSELoss(size_average=True)
-        mse = MSE(recons_x, x)
-        return mse + self.kl_weight * kl_divergence
+        if self.global_step > 200:
+            kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
+        else:
+            kl_weight = 1e-4
+
+        recons_loss = F.mse_loss(recons_x, x)
+
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+
+        loss = recons_loss + kl_weight * kld_loss
+        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
 
     def training_step(self, batch, batch_idx):
         data, target = batch
-        recons_x, x, mu, logvar = self(data, target)
-        loss = self.elbo(recons_x, x, mu, logvar)
-        self.log("train_loss", loss)
-        return loss
+        target = target.to(torch.float)
+        recons_x, x, mu, log_var = self(data, target)
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict(loss_dict)
+        return loss_dict['loss']
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
-        recons_x, x, mu, logvar = self(data, target)
-        loss = self.elbo(recons_x, x, mu, logvar)
-        self.log("val_loss", loss)
-
+        target = target.to(torch.float)
+        recons_x, x, mu, log_var = self(data, target)
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'val_loss': loss_dict['loss'],
+            'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'val_KLD': loss_dict['KLD']
+        })
+    
     def test_step(self, batch, batch_idx):
         data, target = batch
-        recons_x, x, mu, logvar = self(data, target)
-        loss = self.elbo(recons_x, x, mu, logvar)
-        self.log("test_loss", loss)
+        target = target.to(torch.float)
+        recons_x, x, mu, log_var = self(data, target)
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'test_loss': loss_dict['loss'],
+            'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'test_KLD': loss_dict['KLD']
+        })
+
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=4)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
@@ -688,11 +687,10 @@ class ViTCVAE_R(LightningModule):
         # self.kl_weight = kl_weight
         self.save_hyperparameters()
 
-        self.n_min = 1e-6
-        self.n_max = 1e-3
-        self.T_max = 200
+        self.n_min = 1e-8
+        self.n_max = 1
+        self.T_max = 100
         self.pi = np.pi
-        self.first_epoch = True
 
 
         self.dim = dim
@@ -815,12 +813,7 @@ class ViTCVAE_R(LightningModule):
         """
         Computes the VAE loss function.
         """
-        if self.current_epoch == 1 & self.first_epoch:
-            self.T_max = self.global_step
-            self.first_epoch = False
-            print(self.T_max)
-
-        if self.current_epoch > 0:
+        if self.global_step > 200:
             kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
         else:
             kl_weight = 1e-4
@@ -865,7 +858,7 @@ class ViTCVAE_R(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10,factor=0.5)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
