@@ -62,21 +62,22 @@ class CelebADataModule(pl.LightningDataModule):
         DebuggedCelebA(self.data_dir, split="train", download=False)
         DebuggedCelebA(self.data_dir, split="test", download=False)
 
-    def setup(self):
+    def setup(self, stage=None):
         transforms_seq = transforms.Compose(
             [transforms.Resize((128, 128)), transforms.ToTensor()]
         )
-        self.celeb_test = DebuggedCelebA(
-            self.data_dir, split="test", transform=transforms_seq
-        )
+        if stage == "test" or stage is None:
+            self.celeb_test = DebuggedCelebA(
+                self.data_dir, split="test", transform=transforms_seq
+            )
+        if stage == "fit" or stage is None:
+            self.celeb_train = DebuggedCelebA(
+                self.data_dir, split="train", transform=transforms_seq
+            )
 
-        self.celeb_train = DebuggedCelebA(
-            self.data_dir, split="train", transform=transforms_seq
-        )
-
-        self.celeb_val = DebuggedCelebA(
-            self.data_dir, split="valid", transform=transforms_seq
-        )
+            self.celeb_val = DebuggedCelebA(
+                self.data_dir, split="valid", transform=transforms_seq
+            )
 
     def train_dataloader(self):
         return DataLoader(

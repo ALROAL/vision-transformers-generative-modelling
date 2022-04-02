@@ -164,7 +164,7 @@ def main(
         )
 
     celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
-    celeb.setup()
+    # celeb.setup()
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
@@ -186,7 +186,7 @@ def main(
         logger=wandb_logger,
     )
 
-    trainer.tune(model, datamodule=celeb)
+    # trainer.tune(model, datamodule=celeb)
     trainer.fit(model, datamodule=celeb)
 
 

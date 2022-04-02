@@ -1,10 +1,11 @@
+import numpy as np
 import torch
 import torch.utils.data
+from torch import nn, optim
+from torch.nn import functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from pytorch_lightning import LightningModule
-from torch import nn, optim
-from torch.nn import functional as F
 from vit_pytorch.deepvit import Transformer as Transformer_deep
 from vit_pytorch.vit import Transformer, pair
 
@@ -684,8 +685,14 @@ class ViTCVAE_R(LightningModule):
         patch_dim = (1+channels) * patch_height * patch_width
 
         self.lr = lr
-        self.kl_weight = kl_weight
+        # self.kl_weight = kl_weight
         self.save_hyperparameters()
+
+        self.n_min = 1e-8
+        self.n_max = 1
+        self.T_max = 100
+        self.pi = np.pi
+
 
         self.dim = dim
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
@@ -807,11 +814,16 @@ class ViTCVAE_R(LightningModule):
         """
         Computes the VAE loss function.
         """
+        if self.global_step > 200:
+            kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
+        else:
+            kl_weight = 1e-4
+
         recons_loss =F.mse_loss(recons_x, x)
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
-        loss = recons_loss + self.kl_weight * kld_loss
+        loss = recons_loss + kl_weight * kld_loss
         return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
 
     def training_step(self, batch, batch_idx):
