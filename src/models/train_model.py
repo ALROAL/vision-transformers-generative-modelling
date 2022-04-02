@@ -142,7 +142,7 @@ def main(
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
+            monitor="val_loss", patience=30, verbose=True, mode="min", strict=False
         )
 
     if model_type == "ViTCVAE_A":
