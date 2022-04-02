@@ -688,7 +688,7 @@ class ViTCVAE_R(LightningModule):
         # self.kl_weight = kl_weight
         self.save_hyperparameters()
 
-        self.n_min = 1e-5
+        self.n_min = 1e-6
         self.n_max = 1e-3
         self.T_max = 200
         self.pi = np.pi
@@ -820,7 +820,7 @@ class ViTCVAE_R(LightningModule):
             self.first_epoch = False
             print(self.T_max)
 
-        if self.global_step > 400:
+        if self.current_epoch > 0:
             kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
         else:
             kl_weight = 1e-4
