@@ -26,7 +26,7 @@ def main(
     heads: int = 8,
     mlp_dim: int = 1024,
     kl_weight: float = 1e-5,
-    lr: float = 3e-5,
+    lr: float = 1e-4,
     patch_size: int = 16,
     batch_size: int = 256,
     optim_choice: str = "Adam",
@@ -131,6 +131,7 @@ def main(
             heads=heads,
             mlp_dim=mlp_dim,
             ngf=ngf,
+            lr=lr
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
