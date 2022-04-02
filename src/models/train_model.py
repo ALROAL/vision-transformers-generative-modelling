@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 import torch
 from pytorch_lightning import Trainer, seed_everything
@@ -121,6 +122,7 @@ def main(
         )
 
     if model_type == "ViTCVAE_R":
+        time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
         model = ViTCVAE_R(
             image_size=(128, 128),
             patch_size=16,
@@ -131,7 +133,7 @@ def main(
             ngf=ngf,
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='ViTCVAE-{epoch}-{val_loss:.3f}',
             monitor="val_loss",
             mode="min",
@@ -139,7 +141,7 @@ def main(
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_loss", patience=10, verbose=True, mode="min", strict=False
+            monitor="val_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
     if model_type == "ViTCVAE_A":
