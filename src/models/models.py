@@ -435,42 +435,53 @@ class ViTVAE(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 
-class ViTCVAE_A(LightningModule):
+
+class ConvCVAE(LightningModule):
     def __init__(
         self,
         image_size=(128, 128),
         patch_size=16,
         num_classes=4,
         dim=256,
-        depth=12,
-        heads=16,
+        depth=4,
+        heads=8,
         mlp_dim=256,
         channels=3,
         dim_head=64,
-        ngf=64,
+        ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
-        kl_weight=1e-5,
-        lr=5e-5,
+        lr=1e-4,
     ):
         super().__init__()
-        image_height, image_width = pair(image_size)
+        self.image_height, self.image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
         assert (
-            image_height % patch_height == 0 and image_width % patch_width == 0
+            self.image_height % patch_height == 0 and self.image_width % patch_width == 0
         ), "Image dimensions must be divisible by the patch size."
 
-        num_patches = (image_height // patch_height) * (image_width // patch_width)
-        patch_dim = channels * patch_height * patch_width
+        num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
+        patch_dim = (1+channels) * patch_height * patch_width
+
+        self.lr = lr
+        self.save_hyperparameters()
+
+        self.n_min = 1e-6
+        self.n_max = 1e-3
+        self.T_max = 1
+        self.pi = np.pi
+        self.first_epoch = True
+
 
         self.dim = dim
-        self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.mean = nn.Linear((ngf*16)*4*4, dim)
+        self.log_var = nn.Linear((ngf*16)*4*4, dim)
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 3, dim))
-        self.label_embedding = nn.Linear(num_classes, image_height * image_width)
-        self.conditioning = nn.Linear(dim + num_classes, dim)
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+
+        self.label_embedding = nn.Linear(num_classes, self.image_height*self.image_width)
+        self.decoder_input = nn.Linear(dim + num_classes, dim)
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -483,13 +494,30 @@ class ViTCVAE_A(LightningModule):
 
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.encoder_transformer = Transformer(
-            dim, depth, heads, dim_head, mlp_dim, dropout
-        )
+        self.encoder_conv = nn.Sequential(
+                    nn.Conv2d(channels + 1, out_channels=ngf, kernel_size= 3, stride= 2, padding = 1),
+                    nn.BatchNorm2d(ngf),
+                    nn.LeakyReLU(),
+                    
+                    nn.Conv2d(ngf, out_channels=ngf*2, kernel_size= 3, stride= 2, padding = 1),
+                    nn.BatchNorm2d(ngf*2),
+                    nn.LeakyReLU(),
+                    
+                    nn.Conv2d(ngf*2, out_channels=ngf*4, kernel_size= 3, stride= 2, padding = 1),
+                    nn.BatchNorm2d(ngf*4),
+                    nn.LeakyReLU(),
+                    
+                    nn.Conv2d(ngf*4, out_channels=ngf*8, kernel_size= 3, stride= 2, padding = 1),
+                    nn.BatchNorm2d(ngf*8),
+                    nn.LeakyReLU(),
+
+                    nn.Conv2d(ngf*8, out_channels=ngf*16, kernel_size= 3, stride= 2, padding = 1),
+                    nn.BatchNorm2d(ngf*16),
+                    nn.LeakyReLU(),)
 
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(dim*2, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
             nn.BatchNorm2d(ngf * 16),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -514,50 +542,17 @@ class ViTCVAE_A(LightningModule):
             # state size. (nc) x 128 x 128
         )
 
-        self.lr = lr
-        # self.kl_weight = kl_weight
+    def encoder(self, img):
 
-        self.n_min = 1e-8
-        self.n_max = 1
-        self.T_max = 100
-        self.pi = np.pi
-        self.save_hyperparameters()
-
-    def encoder(self, img, labels):
-
-        labels = self.label_embedding(labels.float())
-        labels = rearrange(labels, "b (h w) -> b 1 h w")
-        img = torch.cat((img, labels), dim=1)
-
-        x = self.to_patch_embedding(img)
-        b, n, _ = x.shape
-
-        log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
-        x = torch.cat((log_var_tokens, x), dim=1)
-
-        mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
-        x = torch.cat((mean_tokens, x), dim=1)
-
-        x += self.pos_embedding
-
-        x = self.dropout(x)
-
-        x = self.encoder_transformer(x)
+        x = self.encoder_conv(img)
 
         return x
 
-    def decoder(self, x, labels):
-
-        x = torch.cat((x, labels), dim=1)
-        x = self.conditioning(x)
-
-        x = rearrange(x, "b d -> b d 1 1")
-
-        x = self.dropout(x)
-
-        x = self.decoder_conv(x)
-
-        return x
+    def decoder(self, z):
+        result = self.decoder_input(z)
+        result = rearrange(result, "b d -> b d 1 1")
+        result = self.decoder_conv(result)
+        return result
 
     def reparameterize(self, mean, log_var):
         std = torch.exp(0.5 * log_var)
@@ -568,16 +563,21 @@ class ViTCVAE_A(LightningModule):
         return z
 
     def forward(self, img, labels):
+        label_embeddings = self.label_embedding(labels)
+        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
+        x = torch.cat([img,label_embeddings], dim = 1)
+        x = self.encoder(x)
 
-        x = self.encoder(img, labels)
+        x = torch.flatten(x, start_dim=1)
 
-        mean = x[:, 0]
-        log_var = x[:, 1]
+        mean = self.mean(x)
+        log_var = self.log_var(x)
 
         z = self.reparameterize(mean, log_var)
-        out = self.decoder(z, labels)
+        z = torch.cat([z, labels], dim = 1)
+        x = self.decoder(z)
 
-        return img, out, mean, log_var
+        return x, img, mean, log_var
 
     def sample(self, num_samples, label):
         """
@@ -597,12 +597,17 @@ class ViTCVAE_A(LightningModule):
         """
         Computes the VAE loss function.
         """
-        if self.global_step > 200:
+        if self.current_epoch == 1 & self.first_epoch:
+            self.T_max = self.global_step
+            self.first_epoch = False
+            print(self.T_max)
+
+        if self.current_epoch > 0:
             kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
         else:
             kl_weight = 1e-4
 
-        recons_loss = F.mse_loss(recons_x, x)
+        recons_loss =F.mse_loss(recons_x, x)
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
@@ -642,7 +647,7 @@ class ViTCVAE_A(LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
