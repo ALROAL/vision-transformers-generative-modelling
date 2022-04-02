@@ -687,7 +687,7 @@ class ViTCVAE_R(LightningModule):
 
         self.n_min = 1e-6
         self.n_max = 1e-3
-        self.T_max = 1
+        self.T_max = 10000
         self.pi = np.pi
         self.first_epoch = True
 
@@ -813,11 +813,11 @@ class ViTCVAE_R(LightningModule):
         Computes the VAE loss function.
         """
         if self.current_epoch == 1 & self.first_epoch:
-            self.T_max = self.global_step
+            self.T_max = int(self.global_step/2)
             self.first_epoch = False
             print(self.T_max)
 
-        if self.current_epoch > 0:
+        if self.global_step > 3*self.T_max:
             kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
         else:
             kl_weight = 1e-4
