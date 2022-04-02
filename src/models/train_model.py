@@ -145,14 +145,10 @@ def main(
             monitor="val_loss", patience=30, verbose=True, mode="min", strict=False
         )
 
-    if model_type == "ViTCVAE_A":
+    if model_type == "ConvCVAE":
         model = ViTCVAE_A(
             image_size=(128, 128),
-            patch_size=16,
-            dim=dim,
-            depth=depth,
-            heads=heads,
-            mlp_dim=mlp_dim,
+            dim=dim
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
@@ -167,7 +163,6 @@ def main(
         )
 
     celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
-    # celeb.setup()
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 

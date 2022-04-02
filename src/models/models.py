@@ -440,29 +440,14 @@ class ConvCVAE(LightningModule):
     def __init__(
         self,
         image_size=(128, 128),
-        patch_size=16,
         num_classes=4,
         dim=256,
-        depth=4,
-        heads=8,
-        mlp_dim=256,
         channels=3,
-        dim_head=64,
         ngf=8,
-        dropout=0.0,
-        emb_dropout=0.0,
         lr=1e-4,
     ):
         super().__init__()
         self.image_height, self.image_width = pair(image_size)
-        patch_height, patch_width = pair(patch_size)
-
-        assert (
-            self.image_height % patch_height == 0 and self.image_width % patch_width == 0
-        ), "Image dimensions must be divisible by the patch size."
-
-        num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
-        patch_dim = (1+channels) * patch_height * patch_width
 
         self.lr = lr
         self.save_hyperparameters()
@@ -473,47 +458,33 @@ class ConvCVAE(LightningModule):
         self.pi = np.pi
         self.first_epoch = True
 
-
         self.dim = dim
         self.mean = nn.Linear((ngf*16)*4*4, dim)
         self.log_var = nn.Linear((ngf*16)*4*4, dim)
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
-
         self.label_embedding = nn.Linear(num_classes, self.image_height*self.image_width)
         self.decoder_input = nn.Linear(dim + num_classes, dim)
 
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange(
-                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
-                p1=patch_height,
-                p2=patch_width,
-            ),
-            nn.Linear(patch_dim, dim),
-        )
-
-        self.dropout = nn.Dropout(emb_dropout)
-
         self.encoder_conv = nn.Sequential(
-                    nn.Conv2d(channels + 1, out_channels=ngf, kernel_size= 3, stride= 2, padding = 1),
-                    nn.BatchNorm2d(ngf),
-                    nn.LeakyReLU(),
-                    
-                    nn.Conv2d(ngf, out_channels=ngf*2, kernel_size= 3, stride= 2, padding = 1),
-                    nn.BatchNorm2d(ngf*2),
-                    nn.LeakyReLU(),
-                    
-                    nn.Conv2d(ngf*2, out_channels=ngf*4, kernel_size= 3, stride= 2, padding = 1),
-                    nn.BatchNorm2d(ngf*4),
-                    nn.LeakyReLU(),
-                    
-                    nn.Conv2d(ngf*4, out_channels=ngf*8, kernel_size= 3, stride= 2, padding = 1),
-                    nn.BatchNorm2d(ngf*8),
-                    nn.LeakyReLU(),
+            nn.Conv2d(channels + 1, out_channels=ngf, kernel_size= 3, stride= 2, padding = 1),
+            nn.BatchNorm2d(ngf),
+            nn.LeakyReLU(),
+            
+            nn.Conv2d(ngf, out_channels=ngf*2, kernel_size= 3, stride= 2, padding = 1),
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(),
+            
+            nn.Conv2d(ngf*2, out_channels=ngf*4, kernel_size= 3, stride= 2, padding = 1),
+            nn.BatchNorm2d(ngf*4),
+            nn.LeakyReLU(),
+            
+            nn.Conv2d(ngf*4, out_channels=ngf*8, kernel_size= 3, stride= 2, padding = 1),
+            nn.BatchNorm2d(ngf*8),
+            nn.LeakyReLU(),
 
-                    nn.Conv2d(ngf*8, out_channels=ngf*16, kernel_size= 3, stride= 2, padding = 1),
-                    nn.BatchNorm2d(ngf*16),
-                    nn.LeakyReLU(),)
+            nn.Conv2d(ngf*8, out_channels=ngf*16, kernel_size= 3, stride= 2, padding = 1),
+            nn.BatchNorm2d(ngf*16),
+            nn.LeakyReLU(),)
 
         self.decoder_conv = nn.Sequential(
             # input is Z, going into a convolution
