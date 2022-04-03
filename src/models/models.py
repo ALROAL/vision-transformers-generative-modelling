@@ -661,7 +661,7 @@ class ViTCVAE_R(LightningModule):
         self.lr = lr
         self.save_hyperparameters()
 
-        self.n_min = 1e-6
+        self.n_min = 1e-5
         self.n_max = 1e-3
         self.T_max = 10000
         self.pi = np.pi
