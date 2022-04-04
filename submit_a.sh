@@ -25,4 +25,6 @@ source aml/bin/activate
 
 #python3 main.py --name ViTVAE --model-type ViTVAE --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
 
-python3 main.py --name ConvCVAE --model-type ConvCVAE --dim 256 --batch_size 64 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+#python3 main.py --name ConvCVAE --model-type ConvCVAE --dim 256 --batch_size 64 --max-epochs 100 --num-workers 8 >| outputs/ViTVAE.out 2>| error/ViTVAE.err
+
+python3 main.py --name ViTCVAE_R --model-type ViTCVAE_R --dim 256 --mlp_dim 256 --batch_size 64 --ngf 32 --max-epochs 100 --num-workers 8 >| outputs/ViTCVAE_R.out 2>| error/ViTCVAE_R.err
