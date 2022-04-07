@@ -715,8 +715,8 @@ class ViTCVAE_R(LightningModule):
             nn.ReLU(True),
             # state size. (ngf) x 64 x 64
             nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
-            # nn.Tanh()
-            nn.Sigmoid()
+            nn.Tanh()
+            # nn.Sigmoid()
             # state size. (nc) x 128 x 128
         )
 
@@ -796,15 +796,15 @@ class ViTCVAE_R(LightningModule):
         #     kl_weight = 1e-3
 
         # recons_loss =F.mse_loss(recons_x, x)
-        recons_loss = torch.mean(F.mse_loss(recons_x, x,reduction="sum"),dim=0)
-        # recons_loss = F.binary_cross_entropy_with_logits(recons_x, x,reduction="sum")
-        # recons_loss = torch.mean(F.binary_cross_entropy(recons_x, x,reduction="sum"),dim=0)
+        # recons_loss = torch.mean(F.mse_loss(recons_x, x,reduction="sum"),dim=0)
+        recons_loss = torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        # recons_loss = torch.mean(torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1),dim=0)
 
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-        # kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+        # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
     
-        # loss = torch.mean(recons_loss + kld_loss,dim=0)
-        loss = recons_loss + kld_loss
+        loss = torch.mean(recons_loss + kld_loss,dim=0)
+        # loss = recons_loss + kld_loss
         return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
     def training_step(self, batch, batch_idx):
