@@ -630,7 +630,7 @@ class ConvCVAE(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 
-class ViTCVAE_R(LightningModule):
+class CViTVAE(LightningModule):
     def __init__(
         self,
         image_size=(128, 128),

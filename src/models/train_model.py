@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import DeepViT, ViT, ViTCVAE_R, ViTVAE, ConvCVAE
+from src.models.models import DeepViT, ViT, CViTVAE, ViTVAE, ConvCVAE
 
 
 def main(
@@ -121,9 +121,9 @@ def main(
             monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    if model_type == "ViTCVAE_R":
+    if model_type == "CViTVAE":
         time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
-        model = ViTCVAE_R(
+        model = ViTCVAE(
             image_size=(128, 128),
             patch_size=16,
             dim=dim,
@@ -135,10 +135,10 @@ def main(
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
-            filename='ViTCVAE-{epoch}-{val_loss:.4f}',
+            filename='CViTVAE-{epoch}',
             monitor="val_loss",
             mode="min",
-            save_top_k=2,
+            save_top_k=1,
             auto_insert_metric_name=True,
         )
         early_stopping_callback = EarlyStopping(
