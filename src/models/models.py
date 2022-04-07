@@ -661,8 +661,8 @@ class CViTVAE(LightningModule):
         self.lr = lr
         self.save_hyperparameters()
 
-        self.n_min = 1e-2
-        self.n_max = 1
+        self.n_min = 1
+        self.n_max = 10
         self.T_max = 10000
         self.pi = np.pi
         self.first_epoch = True
@@ -785,15 +785,15 @@ class CViTVAE(LightningModule):
         """
         Computes the VAE loss function.
         """
-        # if self.current_epoch == 1 & self.first_epoch:
-        #     self.T_max = self.global_step
-        #     self.first_epoch = False
-        #     print(self.T_max)
+        if self.current_epoch == 1 & self.first_epoch:
+            self.T_max = self.global_step
+            self.first_epoch = False
+            print(self.T_max)
 
-        # if self.current_epoch > 1:
-        #     kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
-        # else:
-        #     kl_weight = 1e-3
+        if self.current_epoch > 1:
+            kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
+        else:
+            kl_weight = 1
 
         # recons_loss =F.mse_loss(recons_x, x)
         # recons_loss = torch.mean(F.mse_loss(recons_x, x,reduction="sum"),dim=0)
@@ -803,7 +803,7 @@ class CViTVAE(LightningModule):
         # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
         kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
     
-        loss = torch.mean(recons_loss + kld_loss,dim=0)
+        loss = torch.mean(recons_loss + kl_weight*kld_loss,dim=0)
         # loss = recons_loss + kld_loss
         return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
