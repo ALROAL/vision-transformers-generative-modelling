@@ -784,25 +784,25 @@ class ViTCVAE_R(LightningModule):
         """
         Computes the VAE loss function.
         """
-        if self.current_epoch == 1 & self.first_epoch:
-            self.T_max = self.global_step
-            self.first_epoch = False
-            print(self.T_max)
+        # if self.current_epoch == 1 & self.first_epoch:
+        #     self.T_max = self.global_step
+        #     self.first_epoch = False
+        #     print(self.T_max)
 
-        if self.current_epoch > 1:
-            kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
-        else:
-            kl_weight = 1e-3
+        # if self.current_epoch > 1:
+        #     kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
+        # else:
+        #     kl_weight = 1e-3
 
         # recons_loss =F.mse_loss(recons_x, x)
-        recons_loss =F.mse_loss(recons_x, x,reduction="sum")
+        recons_loss = torch.mean(F.mse_loss(recons_x, x,reduction="sum"),dim=0)
 
         # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1),dim=0)
     
-        loss = torch.mean(recons_loss + kl_weight*kld_loss,dim=0)
+        loss = recons_loss + kld_loss
         # loss = recons_loss + kl_weight * kld_loss
-        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
+        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':kld_loss.detach()}
 
     def training_step(self, batch, batch_idx):
         data, target = batch
