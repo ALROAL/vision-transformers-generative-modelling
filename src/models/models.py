@@ -661,8 +661,8 @@ class ViTCVAE_R(LightningModule):
         self.lr = lr
         self.save_hyperparameters()
 
-        self.n_min = 1e-5
-        self.n_max = 1e-3
+        self.n_min = 1e-2
+        self.n_max = 1
         self.T_max = 10000
         self.pi = np.pi
         self.first_epoch = True
@@ -796,13 +796,15 @@ class ViTCVAE_R(LightningModule):
         if self.current_epoch > 1:
             kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
         else:
-            kl_weight = 1e-4
+            kl_weight = 1e-3
 
-        recons_loss =F.mse_loss(recons_x, x)
+        # recons_loss =F.mse_loss(recons_x, x)
+        recons_loss =F.mse_loss(recons_x, x,reduction="sum")
 
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-
-        loss = recons_loss + kl_weight * kld_loss
+        # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+        loss = torch.mean(recons_loss + kld_loss,dim=0)
+        # loss = recons_loss + kl_weight * kld_loss
         return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
 
     def training_step(self, batch, batch_idx):
