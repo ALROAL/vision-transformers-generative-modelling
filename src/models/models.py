@@ -723,10 +723,6 @@ class ViTCVAE_R(LightningModule):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        # label_emb = self.label_embedding(labels)
-        # label_embs = repeat(label_emb, "b c -> b p c", p=n)
-        # x += label_embs
-
         log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
         x = torch.cat((log_var_tokens, x), dim=1)
 
@@ -803,9 +799,10 @@ class ViTCVAE_R(LightningModule):
 
         # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
         kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
-        loss = torch.mean(recons_loss + kld_loss,dim=0)
+    
+        loss = torch.mean(recons_loss + kl_weight*kld_loss,dim=0)
         # loss = recons_loss + kl_weight * kld_loss
-        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
+        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
     def training_step(self, batch, batch_idx):
         data, target = batch
