@@ -715,8 +715,8 @@ class CViTVAE(LightningModule):
             nn.ReLU(True),
             # state size. (ngf) x 64 x 64
             nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
-            nn.Tanh()
-            # nn.Sigmoid()
+            # nn.Tanh()
+            nn.Sigmoid()
             # state size. (nc) x 128 x 128
         )
 
