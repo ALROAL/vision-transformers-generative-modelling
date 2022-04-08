@@ -785,21 +785,22 @@ class CViTVAE(LightningModule):
         """
         Computes the VAE loss function.
         """
-        if self.current_epoch == 1 & self.first_epoch:
-            self.T_max = self.global_step
-            self.first_epoch = False
-            print(self.T_max)
+        # if self.current_epoch == 1 & self.first_epoch:
+        #     self.T_max = self.global_step
+        #     self.first_epoch = False
+        #     print(self.T_max)
 
-        if self.current_epoch > 1:
-            kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
-        else:
-            kl_weight = 1
+        # if self.current_epoch > 1:
+        #     kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
+        # else:
+        #     kl_weight = 1
 
-        recons_loss = torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        # recons_loss = torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
         
         kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
     
-        loss = torch.mean(recons_loss + kl_weight*kld_loss, dim=0)
+        loss = torch.mean(recons_loss + kld_loss, dim=0)
         
         return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
@@ -835,8 +836,8 @@ class CViTVAE(LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = optim.Adamax(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10,factor=0.5)
+        optimizer = optim.AdamW(self.parameters(), lr=self.lr)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
             "interval": "epoch",
