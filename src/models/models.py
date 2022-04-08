@@ -795,16 +795,12 @@ class CViTVAE(LightningModule):
         else:
             kl_weight = 1
 
-        # recons_loss =F.mse_loss(recons_x, x)
-        # recons_loss = torch.mean(F.mse_loss(recons_x, x,reduction="sum"),dim=0)
         recons_loss = torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
-        # recons_loss = torch.mean(torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1),dim=0)
-
-        # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+        
         kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
     
         loss = torch.mean(recons_loss + kl_weight*kld_loss, dim=0)
-        # loss = recons_loss + kld_loss
+        
         return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
     def training_step(self, batch, batch_idx):
@@ -839,7 +835,7 @@ class CViTVAE(LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = optim.Adamax(self.parameters(), lr=self.lr)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10,factor=0.5)
         lr_scheduler_config = {
             "scheduler": lr_scheduler,
