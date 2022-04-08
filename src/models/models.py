@@ -661,12 +661,6 @@ class CViTVAE(LightningModule):
         self.lr = lr
         self.save_hyperparameters()
 
-        self.n_min = 1
-        self.n_max = 3
-        self.T_max = 10000
-        self.pi = np.pi
-        self.first_epoch = True
-
 
         self.dim = dim
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
@@ -715,8 +709,7 @@ class CViTVAE(LightningModule):
             nn.ReLU(True),
             # state size. (ngf) x 64 x 64
             nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
-            # nn.Tanh()
-            nn.Sigmoid()
+            nn.Tanh()
             # state size. (nc) x 128 x 128
         )
 
@@ -785,17 +778,6 @@ class CViTVAE(LightningModule):
         """
         Computes the VAE loss function.
         """
-        # if self.current_epoch == 1 & self.first_epoch:
-        #     self.T_max = self.global_step
-        #     self.first_epoch = False
-        #     print(self.T_max)
-
-        # if self.current_epoch > 1:
-        #     kl_weight = self.n_min+1/2*(self.n_max-self.n_min)*(1+np.cos(self.global_step/self.T_max*self.pi))
-        # else:
-        #     kl_weight = 1
-
-        # recons_loss = torch.sum(F.binary_cross_entropy_with_logits(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
         recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
         
         kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
