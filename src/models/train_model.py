@@ -123,7 +123,7 @@ def main(
 
     if model_type == "CViTVAE":
         time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
-        model = ViTCVAE(
+        model = CViTVAE(
             image_size=(128, 128),
             patch_size=16,
             dim=dim,
