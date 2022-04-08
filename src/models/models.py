@@ -662,7 +662,7 @@ class CViTVAE(LightningModule):
         self.save_hyperparameters()
 
         self.n_min = 1
-        self.n_max = 10
+        self.n_max = 3
         self.T_max = 10000
         self.pi = np.pi
         self.first_epoch = True
@@ -803,7 +803,7 @@ class CViTVAE(LightningModule):
         # kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
         kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
     
-        loss = torch.mean(recons_loss + kl_weight*kld_loss,dim=0)
+        loss = torch.mean(recons_loss + kl_weight*kld_loss, dim=0)
         # loss = recons_loss + kld_loss
         return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
