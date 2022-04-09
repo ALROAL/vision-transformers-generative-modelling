@@ -1,0 +1,17 @@
+channels: 3
+depth: 4
+dim: 256
+dim_head: 64
+dropout: 0.0
+emb_dropout: 0.0
+heads: 8
+image_size: !!python/tuple
+- 96
+- 80
+kl_weight: 1.0e-05
+landa: 100
+lr: 5.0e-05
+mlp_dim: 256
+nfg: 8
+num_classes: 4
+patch_size: 16
