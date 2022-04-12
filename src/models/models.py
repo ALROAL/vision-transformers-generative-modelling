@@ -1197,3 +1197,278 @@ class CViTVAE(LightningModule):
         }
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+
+
+
+class Generator(nn.Module):
+    def __init__(
+        self,
+        image_size=(128, 128),
+        patch_size=16,
+        num_classes=4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf=8,
+        dropout=0.0,
+        emb_dropout=0.0,
+    ):
+        super().__init__()
+        self.image_height, self.image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+
+        assert (
+            self.image_height % patch_height == 0 and self.image_width % patch_width == 0
+        ), "Image dimensions must be divisible by the patch size."
+
+        num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
+        patch_dim = (1+channels) * patch_height * patch_width
+
+        self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+        self.label_embedding = nn.Linear(num_classes, self.image_height*self.image_width)
+        self.decoder_input = nn.Linear(dim + num_classes, dim)
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange(
+                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
+                p1=patch_height,
+                p2=patch_width,
+            ),
+            nn.Linear(patch_dim, dim),
+        )
+
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.encoder_transformer = Transformer(
+            dim, depth, heads, dim_head, mlp_dim, dropout
+        )
+
+        self.decoder_conv = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 16),
+            nn.ReLU(True),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 16, ngf * 8, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf * 2, ngf, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. (ngf) x 64 x 64
+            nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.Tanh()
+            # state size. (nc) x 128 x 128
+        )
+
+    def encoder(self, img):
+        x = self.to_patch_embedding(img)
+        b, n, _ = x.shape
+
+        log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
+        x = torch.cat((log_var_tokens, x), dim=1)
+        mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
+        x = torch.cat((mean_tokens, x), dim=1)
+
+        x += self.pos_embedding
+        x = self.dropout(x)
+        x = self.encoder_transformer(x)
+
+        return x
+
+    def decoder(self, z):
+        result = self.decoder_input(z)
+        result = rearrange(result, "b d -> b d 1 1")
+        result = self.decoder_conv(result)
+        return result
+
+    def reparameterize(self, mean, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+
+        z = eps.mul(std).add_(mean)
+
+        return z
+
+    def forward(self, img, labels):
+        label_embeddings = self.label_embedding(labels)
+        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
+        x = torch.cat([img,label_embeddings],dim = 1)
+        x = self.encoder(x)
+
+        mean = x[:, 0]
+        log_var = x[:, 1]
+
+        z = self.reparameterize(mean, log_var)
+        z = torch.cat([z, labels], dim = 1)
+        z = z.type_to(img)
+        recons_img = self.decoder(z)
+
+        return recons_img, mean, log_var
+
+
+class CViTVAE_PatchGAN(LightningModule):
+    def __init__(
+        self,
+        image_size=(128,128),
+        patch_size=16,
+        num_classes = 4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf = 8,
+        dropout=0.0,
+        emb_dropout=0.0,
+        landa = 100,
+        lr=1e-4
+        ):
+        
+        super().__init__()
+        
+
+        self.generator = Generator(image_size=image_size,
+                                   patch_size=patch_size,
+                                   num_classes=num_classes,
+                                   dim=dim,
+                                   depth=depth,
+                                   heads=heads,
+                                   mlp_dim=mlp_dim,
+                                   channels=channels,
+                                   dim_head=dim_head,
+                                   ngf=ngf,
+                                   dropout=dropout,
+                                   emb_dropout=emb_dropout)
+
+        
+        # For now we will have a normal Discriminator; then I will change it to PatchGAN
+        self.discriminator = Discriminator_Patch()
+        self.landa =landa
+        self.lr = lr
+        
+        self.save_hyperparameters()
+
+
+    def forward(self, img, labels):
+        recons_img, mean, log_var = self.generator(img,labels)
+    
+
+        # # Discriminator
+        # real_label = self.discriminator(img)
+        # fake_label = self.discriminator(out)
+
+        return recons_img, mean, log_var
+
+    def discriminator_loss(self, real_label, fake_label):
+        # Loss with the real image
+        loss_object = nn.CrossEntropyLoss()
+        real_loss = loss_object(torch.ones_like(real_label),real_label)
+        # Loss with the generated image
+        generated_loss = loss_object(torch.zeros_like(fake_label), fake_label)
+
+        total = real_loss + generated_loss
+
+        return total
+
+    def generator_loss(self,fake_label, out, img):
+        # Want to make the answer of the discriminator all close to one
+        loss_object = nn.CrossEntropyLoss()
+        gan_loss = loss_object(torch.ones_like(fake_label), fake_label)
+        #difference in image 
+        loss_l1 = torch.mean(torch.absolute(img - out))
+        total = gan_loss + (self.landa * loss_l1) 
+        return total  
+
+    def loss_function(self,recons_x, x, mu, log_var):
+        """
+        Computes the VAE loss function.
+        """
+        recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+    
+        loss = torch.mean(recons_loss + kld_loss, dim=0)
+        
+        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
+
+
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        imgs, labels = batch
+        labels = labels.to(torch.float)
+
+        # train generator
+        if optimizer_idx == 0:
+
+            # generate images
+            self.generated_imgs = self(imgs,labels)
+
+            # log sampled images
+            sample_imgs = self.generated_imgs[:6]
+            grid = torchvision.utils.make_grid(sample_imgs)
+            self.logger.experiment.add_image("generated_images", grid, 0)
+
+            # ground truth result (ie: all fake)
+            # put on GPU because we created this tensor inside training_loop
+            valid = torch.ones(imgs.size(0), 1)
+            valid = valid.type_as(imgs)
+
+            # adversarial loss is binary cross-entropy
+            g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
+            tqdm_dict = {"g_loss": g_loss}
+            output = OrderedDict({"loss": g_loss, "progress_bar": tqdm_dict, "log": tqdm_dict})
+            return output
+
+        # train discriminator
+        if optimizer_idx == 1:
+            # Measure discriminator's ability to classify real from generated samples
+
+            # how well can it label as real?
+            valid = torch.ones(imgs.size(0), 1)
+            valid = valid.type_as(imgs)
+
+            real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+
+            # how well can it label as fake?
+            fake = torch.zeros(imgs.size(0), 1)
+            fake = fake.type_as(imgs)
+
+            fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
+
+            # discriminator loss is the average of these
+            d_loss = (real_loss + fake_loss) / 2
+            tqdm_dict = {"d_loss": d_loss}
+            output = OrderedDict({"loss": d_loss, "progress_bar": tqdm_dict, "log": tqdm_dict})
+            return output
+
+    def configure_optimizers(self):
+        opt_g = optim.AdamW(self.generator.parameters(), lr=self.lr)
+        opt_d = optim.AdamW(self.discriminator.parameters(),lr=self.lr)
+
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt_g, patience=5,factor=0.5)
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": False,
+        }
+
+        return {"optimizer": [opt_g,opt_d], "lr_scheduler": lr_scheduler_config}
