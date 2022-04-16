@@ -364,17 +364,22 @@ class ViTVAE_PatchGAN(LightningModule):
         })
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=6)
-        lr_scheduler_config = {
-            "scheduler": lr_scheduler,
-            "interval": "epoch",
-            "frequency": 1,
-            "monitor": "val_loss",
-            "strict": False,
-        }
+        optimizer1 = optim.Adam(self.parameters(), lr=self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
+        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
 
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+        return ({
+            "optimizer": optimizer1,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler1,
+                "monitor": "metric_to_track",},},
+        {
+            "optimizer": optimizer2, 
+            "lr_scheduler": {
+                "scheduler": lr_scheduler2,
+                "monitor": "metric_to_track",
+            },},)
 
 
 
@@ -1369,8 +1374,8 @@ class CViTVAE_PatchGAN(LightningModule):
     
 
         # # Discriminator
-        # real_label = self.discriminator(img)
-        # fake_label = self.discriminator(out)
+        real_label = self.discriminator(img)
+        fake_label = self.discriminator(recons_img)
 
         return recons_img, mean, log_var
 
@@ -1407,8 +1412,7 @@ class CViTVAE_PatchGAN(LightningModule):
         return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
 
-    def adversarial_loss(self, y_hat, y):
-        return F.binary_cross_entropy(y_hat, y)
+
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         imgs, labels = batch
