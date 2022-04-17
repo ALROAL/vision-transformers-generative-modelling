@@ -91,7 +91,320 @@ class Discriminator_Patch(nn.Module):
 #          PatchGAN          #
 ##############################
 
+class Generator(nn.Module):
+    def __init__(
+        self,
+        image_size=(128, 128),
+        patch_size=16,
+        num_classes=4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf=8,
+        dropout=0.0,
+        emb_dropout=0.0,
+    ):
+        super().__init__()
+        self.image_height, self.image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+
+        assert (
+            self.image_height % patch_height == 0 and self.image_width % patch_width == 0
+        ), "Image dimensions must be divisible by the patch size."
+
+        num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
+        patch_dim = (1+channels) * patch_height * patch_width
+
+        self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
+        self.label_embedding = nn.Linear(num_classes, self.image_height*self.image_width)
+        self.decoder_input = nn.Linear(dim + num_classes, dim)
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange(
+                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
+                p1=patch_height,
+                p2=patch_width,
+            ),
+            nn.Linear(patch_dim, dim),
+        )
+
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.encoder_transformer = Transformer(
+            dim, depth, heads, dim_head, mlp_dim, dropout
+        )
+
+        self.decoder_conv = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 16),
+            nn.ReLU(True),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 16, ngf * 8, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf * 2, ngf, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. (ngf) x 64 x 64
+            nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
+            nn.Tanh()
+            # state size. (nc) x 128 x 128
+        )
+
+    def encoder(self, img):
+        x = self.to_patch_embedding(img)
+        b, n, _ = x.shape
+
+        log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
+        x = torch.cat((log_var_tokens, x), dim=1)
+        mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
+        x = torch.cat((mean_tokens, x), dim=1)
+
+        x += self.pos_embedding
+        x = self.dropout(x)
+        x = self.encoder_transformer(x)
+
+        return x
+
+    def decoder(self, z):
+        result = self.decoder_input(z)
+        result = rearrange(result, "b d -> b d 1 1")
+        result = self.decoder_conv(result)
+        return result
+
+    def reparameterize(self, mean, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+
+        z = eps.mul(std).add_(mean)
+
+        return z
+
+    def forward(self, img, labels):
+        label_embeddings = self.label_embedding(labels)
+        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
+        x = torch.cat([img,label_embeddings],dim = 1)
+        x = self.encoder(x)
+
+        mean = x[:, 0]
+        log_var = x[:, 1]
+
+        z = self.reparameterize(mean, log_var)
+        z = torch.cat([z, labels], dim = 1)
+        #z = z.type_to(img)
+        recons_img = self.decoder(z)
+
+        return recons_img, mean, log_var
+
+
+
 class ViTVAE_PatchGAN(LightningModule):
+    def __init__(
+        self,
+        image_size=(128,128),
+        patch_size=16,
+        num_classes = 4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf = 8,
+        dropout=0.0,
+        emb_dropout=0.0,
+        landa = 100,
+        kl_weight=1e-5,
+        lr=1e-4,
+        ):
+        
+        super().__init__()
+
+
+        self.generator = Generator(image_size=image_size,
+                                   patch_size=patch_size,
+                                   num_classes=num_classes,
+                                   dim=dim,
+                                   depth=depth,
+                                   heads=heads,
+                                   mlp_dim=mlp_dim,
+                                   channels=channels,
+                                   dim_head=dim_head,
+                                   ngf=ngf,
+                                   dropout=dropout,
+                                   emb_dropout=emb_dropout)
+        
+
+        # For now we will have a normal Discriminator; then I will change it to PatchGAN
+        self.discriminator = Discriminator_Patch()
+        self.landa =landa
+        self.lr = lr
+        self.kl_weight = kl_weight
+        self.save_hyperparameters()
+
+
+    def forward(self, img, labels):
+        # # Generator
+        out, mean, log_var = self.generator(img,labels)
+
+        # # Discriminator
+        real_label = self.discriminator(img)
+        fake_label = self.discriminator(out)
+
+        return out, img, mean, log_var, real_label, fake_label
+    
+
+
+    def sample(self, num_samples):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :return: (Tensor)
+        """
+        z = torch.randn(num_samples, 1, self.dim)
+        labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, labels], dim = 1)
+        samples = self.decoder(z)
+
+        return samples
+
+    def discriminator_loss(self, real_label, fake_label):
+        # Loss with the real image
+        loss_object = nn.CrossEntropyLoss()
+        real_loss = loss_object(torch.ones_like(real_label),real_label)
+        # Loss with the generated image
+        generated_loss = loss_object(torch.zeros_like(fake_label), fake_label)
+
+        total = real_loss + generated_loss
+
+        return {"loss":total}
+
+    def generator_loss(self,fake_label, out, img):
+        # Want to make the answer of the discriminator all close to one
+        loss_object = nn.CrossEntropyLoss()
+        gan_loss = loss_object(torch.ones_like(fake_label), fake_label)
+        #difference in image 
+        loss_l1 = torch.mean(torch.absolute(img - out))
+        total = gan_loss + (self.landa * loss_l1) 
+        return {"loss":total}  
+
+    def loss_function(self,recons_x, x, mu, log_var):
+        """
+        Computes the VAE loss function.
+        """
+        recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+    
+        loss = torch.mean(recons_loss + kld_loss, dim=0)
+        
+        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
+
+
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        data, target = batch
+        target = target.to(torch.float)
+
+        # train generator
+        if optimizer_idx == 0:
+
+            # generate images
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+            loss_dict = self.loss_function(recons_x, x, mu, log_var)
+            self.log_dict(loss_dict)
+            return loss_dict["loss"]
+
+        # train discriminator
+        if optimizer_idx == 1:
+            # Measure discriminator's ability to classify real from generated samples
+
+            # how well can it label as real?
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+            loss_dict = self.discriminator_loss(real_label, fake_label)
+            self.log("Discriminator_loss real image", loss_dict["loss"])
+
+            return loss_dict["loss"]
+
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+
+        recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+        loss_Discriminator = self.discriminator_loss(real_label, fake_label)
+        self.log("GAN_loss validation real image", loss_Discriminator)
+        loss_Generator = self.generator_loss(fake_label, recons_x, x)
+        self.log("GAN_loss validation fake image", loss_Generator)
+
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'val_loss': loss_dict['loss'],
+            'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'val_KLD': loss_dict['KLD']
+        })
+
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+        loss_Discriminator = self.discriminator_loss(real_label, fake_label)
+        self.log("GAN_loss test real image", loss_Discriminator)
+        loss_Generator = self.generator_loss(fake_label, recons_x, x)
+        self.log("GAN_loss test fake image", loss_Generator)
+
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'test_loss': loss_dict['loss'],
+            'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'test_KLD': loss_dict['KLD']
+        })
+
+    def configure_optimizers(self):
+        optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
+        lr_scheduler_config_1 = {
+            "scheduler": lr_scheduler1,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
+        lr_scheduler_config_2 = {
+            "scheduler": lr_scheduler2,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+        return [optimizer1, optimizer2], [lr_scheduler_config_1, lr_scheduler_config_2]
+        
+
+    # EN el original he cambiado el error del discriminador y generador para que devuelvan un diccionario
+
+class ViTVAE_PatchGAN_original(LightningModule):
     def __init__(
         self,
         image_size=(128,128),
@@ -278,7 +591,7 @@ class ViTVAE_PatchGAN(LightningModule):
 
         total = real_loss + generated_loss
 
-        return total
+        return {"loss":total}
 
     def generator_loss(self,fake_label, out, img):
         # Want to make the answer of the discriminator all close to one
@@ -287,7 +600,7 @@ class ViTVAE_PatchGAN(LightningModule):
         #difference in image 
         loss_l1 = torch.mean(torch.absolute(img - out))
         total = gan_loss + (self.landa * loss_l1) 
-        return total  
+        return {"loss":total} 
 
     def loss_function(self,recons_x, x, mu, log_var):
         """
@@ -367,19 +680,39 @@ class ViTVAE_PatchGAN(LightningModule):
         optimizer1 = optim.Adam(self.parameters(), lr=self.lr)
         optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
         lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
+        lr_scheduler_config_1 = {
+            "scheduler": lr_scheduler1,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": True,
+        }
         lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
-
-        return ({
+        lr_scheduler_config_2 = {
+            "scheduler": lr_scheduler2,
+            "interval": "epoch",
+            "frequency": 1,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+        return [optimizer1, optimizer2], [lr_scheduler_config_1, lr_scheduler_config_2]
+        
+        """return ({
             "optimizer": optimizer1,
+            "frequency": 1,
             "lr_scheduler": {
                 "scheduler": lr_scheduler1,
-                "monitor": "metric_to_track",},},
+                "monitor": "metric_to_track",
+            },},
         {
             "optimizer": optimizer2, 
+            "frequency":1,
             "lr_scheduler": {
                 "scheduler": lr_scheduler2,
                 "monitor": "metric_to_track",
-            },},)
+            },}, )"""
+
+
 
 
 
@@ -1204,125 +1537,6 @@ class CViTVAE(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
 
 
-
-class Generator(nn.Module):
-    def __init__(
-        self,
-        image_size=(128, 128),
-        patch_size=16,
-        num_classes=4,
-        dim=256,
-        depth=4,
-        heads=8,
-        mlp_dim=256,
-        channels=3,
-        dim_head=64,
-        ngf=8,
-        dropout=0.0,
-        emb_dropout=0.0,
-    ):
-        super().__init__()
-        self.image_height, self.image_width = pair(image_size)
-        patch_height, patch_width = pair(patch_size)
-
-        assert (
-            self.image_height % patch_height == 0 and self.image_width % patch_width == 0
-        ), "Image dimensions must be divisible by the patch size."
-
-        num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
-        patch_dim = (1+channels) * patch_height * patch_width
-
-        self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
-        self.label_embedding = nn.Linear(num_classes, self.image_height*self.image_width)
-        self.decoder_input = nn.Linear(dim + num_classes, dim)
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange(
-                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
-                p1=patch_height,
-                p2=patch_width,
-            ),
-            nn.Linear(patch_dim, dim),
-        )
-
-        self.dropout = nn.Dropout(emb_dropout)
-
-        self.encoder_transformer = Transformer(
-            dim, depth, heads, dim_head, mlp_dim, dropout
-        )
-
-        self.decoder_conv = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(dim, ngf * 16, (4, 4), (1, 1), bias=False),
-            nn.BatchNorm2d(ngf * 16),
-            nn.ReLU(True),
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 16, ngf * 8, (4, 4), (2, 2), (1, 1), bias=False),
-            nn.BatchNorm2d(ngf * 8),
-            nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, (4, 4), (2, 2), (1, 1), bias=False),
-            nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, (4, 4), (2, 2), (1, 1), bias=False),
-            nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d(ngf * 2, ngf, (4, 4), (2, 2), (1, 1), bias=False),
-            nn.BatchNorm2d(ngf),
-            nn.ReLU(True),
-            # state size. (ngf) x 64 x 64
-            nn.ConvTranspose2d(ngf, channels, (4, 4), (2, 2), (1, 1), bias=False),
-            nn.Tanh()
-            # state size. (nc) x 128 x 128
-        )
-
-    def encoder(self, img):
-        x = self.to_patch_embedding(img)
-        b, n, _ = x.shape
-
-        log_var_tokens = repeat(self.log_var_token, "() n d -> b n d", b=b)
-        x = torch.cat((log_var_tokens, x), dim=1)
-        mean_tokens = repeat(self.mean_token, "() n d -> b n d", b=b)
-        x = torch.cat((mean_tokens, x), dim=1)
-
-        x += self.pos_embedding
-        x = self.dropout(x)
-        x = self.encoder_transformer(x)
-
-        return x
-
-    def decoder(self, z):
-        result = self.decoder_input(z)
-        result = rearrange(result, "b d -> b d 1 1")
-        result = self.decoder_conv(result)
-        return result
-
-    def reparameterize(self, mean, log_var):
-        std = torch.exp(0.5 * log_var)
-        eps = torch.randn_like(std)
-
-        z = eps.mul(std).add_(mean)
-
-        return z
-
-    def forward(self, img, labels):
-        label_embeddings = self.label_embedding(labels)
-        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
-        x = torch.cat([img,label_embeddings],dim = 1)
-        x = self.encoder(x)
-
-        mean = x[:, 0]
-        log_var = x[:, 1]
-
-        z = self.reparameterize(mean, log_var)
-        z = torch.cat([z, labels], dim = 1)
-        z = z.type_to(img)
-        recons_img = self.decoder(z)
-
-        return recons_img, mean, log_var
 
 
 class CViTVAE_PatchGAN(LightningModule):
