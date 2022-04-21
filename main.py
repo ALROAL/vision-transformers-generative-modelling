@@ -16,11 +16,9 @@ def main(
     depth: int = 12,
     heads: int = 16,
     mlp_dim: int = 256,
-    kl_weight: float = 1e-5,
     lr: float = 5e-5,
     patch_size: int = 16,
     batch_size: int = 256,
-    optim_choice: str = "Adam",
     ngf: int = 8,
 ):
     torch.cuda.empty_cache()
@@ -34,11 +32,9 @@ def main(
         depth=depth,
         heads=heads,
         mlp_dim=mlp_dim,
-        kl_weight=kl_weight,
         lr=lr,
         patch_size=patch_size,
         batch_size=batch_size,
-        optim_choice=optim_choice,
         ngf=ngf,
     )
 
@@ -70,9 +66,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mlp_dim", type=int, help="Dimension of the MLP (FeedForward) layer"
     )
-    parser.add_argument("--kl_weight", type=float, help="Weight for the KL loss")
     parser.add_argument(
-        "--lr", type=float, help="Learning rate (Currently only for classifier)"
+        "--lr", type=float, help="Learning rate"
     )
     parser.add_argument(
         "--patch-size",
@@ -84,11 +79,6 @@ if __name__ == "__main__":
         "--batch_size",
         type=int,
         help="Batch size",
-    )
-    parser.add_argument(
-        "--optim",
-        type=str,
-        help="Which optimizer to use (Adam or SGD) only works for ViT",
     )
     parser.add_argument(
         "--ngf",
@@ -105,11 +95,9 @@ if __name__ == "__main__":
     depth = 12
     heads = 16
     mlp_dim = 128
-    kl_weight = (1e-5,)
     lr = 5e-5
     patch_size = 16
     batch_size = (256,)
-    optim_choice = "Adam"
     ngf = 8
 
     if args.name:
@@ -128,16 +116,12 @@ if __name__ == "__main__":
         heads = args.heads
     if args.mlp_dim:
         mlp_dim = args.mlp_dim
-    if args.kl_weight:
-        kl_weight = args.kl_weight
     if args.lr:
         lr = args.lr
     if args.patch_size:
         patch_size = args.patch_size
     if args.batch_size:
         batch_size = args.batch_size
-    if args.optim:
-        optim_choice = args.optim
     if args.ngf:
         ngf = args.ngf
 
@@ -150,10 +134,8 @@ if __name__ == "__main__":
         depth=depth,
         heads=heads,
         mlp_dim=mlp_dim,
-        kl_weight=kl_weight,
         lr=lr,
         patch_size=patch_size,
         batch_size=batch_size,
-        optim_choice=optim_choice,
         ngf=ngf,
     )

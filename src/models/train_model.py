@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import DeepViT, ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_PatchGAN
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_PatchGAN
 
 
 def main(
@@ -25,11 +25,9 @@ def main(
     depth: int = 4,
     heads: int = 8,
     mlp_dim: int = 1024,
-    kl_weight: float = 1e-5,
     lr: float = 1e-4,
     patch_size: int = 16,
     batch_size: int = 256,
-    optim_choice: str = "Adam",
     ngf: int = 8,
 ):
     filename = "_".join(
@@ -60,7 +58,6 @@ def main(
             dropout=0.5,
             emb_dropout=0.3,
             lr=lr,
-            optim_choice=optim_choice,
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
@@ -74,30 +71,6 @@ def main(
             monitor="val_acc", patience=30, verbose=True, mode="max", strict=False
         )
 
-    if model_type == "DeepViT":
-        model = DeepViT(
-            image_size=32,
-            patch_size=patch_size,
-            num_classes=10,
-            dim=dim,
-            depth=depth,
-            heads=heads,
-            mlp_dim=mlp_dim,
-            dropout=0.1,
-            emb_dropout=0.0,
-            lr=lr,
-        )
-        checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
-            monitor="val_acc",
-            mode="max",
-            save_top_k=1,
-            auto_insert_metric_name=True,
-        )
-        early_stopping_callback = EarlyStopping(
-            monitor="val_acc", patience=30, verbose=True, mode="max", strict=False
-        )
 
     if model_type == "ViTVAE":
         model = ViTVAE(
@@ -107,7 +80,6 @@ def main(
             depth=depth,
             heads=heads,
             mlp_dim=mlp_dim,
-            kl_weight=kl_weight,
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,
