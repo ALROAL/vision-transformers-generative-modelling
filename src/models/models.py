@@ -285,14 +285,15 @@ class ViTVAE_PatchGAN(LightningModule):
 
     def discriminator_loss(self, real_label, fake_label):
         # Loss with the real image
-        loss_object = nn.CrossEntropyLoss()
+        # loss_object = nn.CrossEntropyLoss()
+        loss_object = nn.BCEWithLogitsLoss()
+        
         real_loss = loss_object(torch.ones_like(real_label),real_label)
         # Loss with the generated image
         generated_loss = loss_object(torch.zeros_like(fake_label), fake_label)
-
         total = real_loss + generated_loss
 
-        return {"loss":total}
+        return {"loss":total, "loss_real":real_loss, "loss_fake":generated_loss}
 
     def generator_loss(self,fake_label, out, img):
         # Want to make the answer of the discriminator all close to one
@@ -330,17 +331,32 @@ class ViTVAE_PatchGAN(LightningModule):
             recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
 
             loss_dict = self.loss_function(recons_x, x, mu, log_var)
-            self.log_dict(loss_dict)
+            self.log("Generator Traning Loss - VAE error", loss_dict)
+            return loss_dict["loss"]
+
+        # train generator
+        if optimizer_idx == 1:
+
+            # generate images
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+            loss_dict = self.generator_loss(fake_label, recons_x, x)
+            self.log("Generator Traning Loss - Generator error",loss_dict)
             return loss_dict["loss"]
 
         # train discriminator
-        if optimizer_idx == 1:
+        if optimizer_idx == 2:
             # Measure discriminator's ability to classify real from generated samples
 
             # how well can it label as real?
             recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
             loss_dict = self.discriminator_loss(real_label, fake_label)
-            self.log("Discriminator_loss real image", loss_dict["loss"])
+            #self.log("Discriminator_loss real image", loss_dict["loss"])
+            self.log_dict({
+                    'Discriminator loss': loss_dict['loss'],
+                    'Discriminator real_loss': loss_dict['loss_real'],
+                    'Discriminator fake_loss': loss_dict['loss_fake']
+                })
 
             return loss_dict["loss"]
 
@@ -399,7 +415,7 @@ class ViTVAE_PatchGAN(LightningModule):
             "monitor": "val_loss",
             "strict": True,
         }
-        return [optimizer1, optimizer2], [lr_scheduler_config_1, lr_scheduler_config_2]
+        return [optimizer1, optimizer1, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_1, lr_scheduler_config_2]
         
 
     # EN el original he cambiado el error del discriminador y generador para que devuelvan un diccionario
