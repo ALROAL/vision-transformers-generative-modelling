@@ -30,6 +30,8 @@ def main(
     batch_size: int = 256,
     ngf: int = 8,
     kl_weight : int = 1e-5
+    frequency_generator = 10
+    frequency_discriminator = 10
 ):
     filename = "_".join(
         [
@@ -139,6 +141,8 @@ def main(
         model = ViTVAE_PatchGAN(
             image_size=(128, 128),
             dim=dim
+            frequency_generator = frequency_generator,
+            frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type,

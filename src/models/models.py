@@ -229,6 +229,8 @@ class ViTVAE_PatchGAN(LightningModule):
         landa = 100,
         kl_weight=1e-5,
         lr=1e-4,
+        frequency_generator = 1,
+        frequency_discriminator = 1
         ):
         
         super().__init__()
@@ -254,6 +256,8 @@ class ViTVAE_PatchGAN(LightningModule):
         self.lr = lr
         self.kl_weight = kl_weight
         self.save_hyperparameters()
+        self.freq_generator = frequency_generator
+        self.freq_discriminator = frequency_discriminator
 
 
     def forward(self, img, labels):
@@ -402,7 +406,7 @@ class ViTVAE_PatchGAN(LightningModule):
         lr_scheduler_config_1 = {
             "scheduler": lr_scheduler1,
             "interval": "epoch",
-            "frequency": 1,
+            "frequency": freq_generator,
             "monitor": "val_loss",
             "strict": True,
         }
@@ -410,7 +414,7 @@ class ViTVAE_PatchGAN(LightningModule):
         lr_scheduler_config_2 = {
             "scheduler": lr_scheduler2,
             "interval": "epoch",
-            "frequency": 1,
+            "frequency": freq_discriminator,
             "monitor": "val_loss",
             "strict": True,
         }
