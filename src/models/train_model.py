@@ -30,8 +30,8 @@ def main(
     batch_size: int = 256,
     ngf: int = 8,
     kl_weight : int = 1e-5,
-    frequency_generator: int = 1,
-    frequency_discriminator:int = 1
+    frequency_generator: int = 10,
+    frequency_discriminator:int = 10
 ):
     filename = "_".join(
         [

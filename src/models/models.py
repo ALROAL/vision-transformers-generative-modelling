@@ -229,8 +229,8 @@ class ViTVAE_GAN(LightningModule):
         landa = 100,
         kl_weight=1e-5,
         lr=1e-4,
-        frequency_generator = 1,
-        frequency_discriminator = 1
+        frequency_generator = 10,
+        frequency_discriminator = 10
         ):
         
         super().__init__()
