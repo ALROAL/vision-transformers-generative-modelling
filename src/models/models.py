@@ -12,9 +12,10 @@ from vit_pytorch.vit import Transformer, pair
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
+        ndf = 128
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.Conv2d(3, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
@@ -24,11 +25,15 @@ class Discriminator(nn.Module):
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            # state size. (ndf*4) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 16, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
+            # state size. (ndf*16) x 4 x 4
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
@@ -36,30 +41,25 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input)
     
-    
-class Discriminator_Patch_1(nn.Module):
-    def __init__(self, in_channels=3):
-        super(Discriminator_Patch, self).__init__()
+class Discriminator_DC(nn.Module):
+    def __init__(self, nc=3, ndf=64):
+        super(Discriminator_DC, self).__init__()
+        self.cv1 = nn.Conv2d(nc, ndf, kernel_size=4, stride=2, padding=1, bias=False) # (3, 64, 64) -> (64, 32, 32)
+        self.cv2 = nn.Conv2d(ndf, ndf*2, 4, 2, 1 ) # (64, 32, 32) -> (128, 16, 16)
+        self.bn2 = nn.BatchNorm2d(ndf*2) # spatial batch norm is applied on num of channels
+        self.cv3 = nn.Conv2d(ndf*2, ndf*4, 4, 2, 1) # (128, 16, 16) -> (256, 8, 8)
+        self.bn3 = nn.BatchNorm2d(ndf*4)
+        self.cv4 = nn.Conv2d(ndf*4, ndf*8, 4, 2, 1, bias=False) # (256, 8, 8) -> (512, 4, 4)
+        self.bn4 = nn.BatchNorm2d(ndf* 8)
+        self.cv5 = nn.Conv2d(ndf*8, 1, 4, 1, 0, bias=False) # (512, 4, 4) -> (1, 1, 1)
 
-        def discriminator_block(in_filters, out_filters, normalization=True):
-            """Returns downsampling layers of each discriminator block"""
-            layers = [nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1)]
-            if normalization:
-                layers.append(nn.InstanceNorm2d(out_filters))
-            layers.append(nn.LeakyReLU(0.2, inplace=True))
-            return layers
-
-        self.model = nn.Sequential(
-            *discriminator_block(in_channels, 64, normalization=False),
-            *discriminator_block(64, 128),
-            *discriminator_block(128, 256),
-            *discriminator_block(256, 512),
-            nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(in_channels = 512, out_channels = 1, kernel_size = 4, padding=1, bias=False))
-
-    def forward(self, img_A):
-        return self.model(img_A)
-    
+    def forward(self, x):
+        x = F.leaky_relu(self.cv1(x))
+        x = F.leaky_relu(self.bn2(self.cv2(x)), 0.2, True)
+        x = F.leaky_relu(self.bn3(self.cv3(x)), 0.2, True)
+        x = F.leaky_relu(self.bn4(self.cv4(x)), 0.2, True)
+        x = torch.sigmoid(self.cv5(x))
+        return x.view(-1, 1).squeeze(1)
 
 class Discriminator_Patch(nn.Module):
     def __init__(self, in_channels=3):
@@ -209,6 +209,220 @@ class Generator(nn.Module):
 
         return recons_img, mean, log_var
 
+    
+    
+class ViTVAE_GAN(LightningModule):
+    def __init__(
+        self,
+        image_size=(128,128),
+        patch_size=16,
+        num_classes = 4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf = 8,
+        dropout=0.0,
+        emb_dropout=0.0,
+        landa = 100,
+        kl_weight=1e-5,
+        lr=1e-4,
+        frequency_generator = 1,
+        frequency_discriminator = 1
+        ):
+        
+        super().__init__()
+
+
+        self.generator = Generator(image_size=image_size,
+                                   patch_size=patch_size,
+                                   num_classes=num_classes,
+                                   dim=dim,
+                                   depth=depth,
+                                   heads=heads,
+                                   mlp_dim=mlp_dim,
+                                   channels=channels,
+                                   dim_head=dim_head,
+                                   ngf=ngf,
+                                   dropout=dropout,
+                                   emb_dropout=emb_dropout)
+        
+
+        # For now we will have a normal Discriminator; then I will change it to PatchGAN
+        self.discriminator = Discriminator_DC()
+        self.landa =landa
+        self.lr = lr
+        self.kl_weight = kl_weight
+        self.save_hyperparameters()
+        self.freq_generator = frequency_generator
+        self.freq_discriminator = frequency_discriminator
+
+
+    def forward(self, img, labels):
+        # # Generator
+        out, mean, log_var = self.generator(img,labels)
+
+        real_label = self.discriminator(img)
+        fake_label = self.discriminator(out)
+        print("Frequency generator {} Frequency Discriminator {}".format(self.freq_generator, self.freq_discriminator))
+        # # Discriminator
+        print("The real label is \n: {}\n\n and the shape is \n{}\n".format(real_label, real_label.shape))
+
+        return out, img, mean, log_var, real_label, fake_label
+    
+
+
+    def sample(self, num_samples):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :return: (Tensor)
+        """
+        z = torch.randn(num_samples, 1, self.dim)
+        labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, labels], dim = 1)
+        samples = self.decoder(z)
+
+        return samples
+
+    def discriminator_loss(self, real_label, fake_label):
+        # Loss with the real image
+        # loss_object = nn.CrossEntropyLoss()
+        loss_object = adversarial_loss(real_label, torch.ones_like(real_label))
+        
+        real_loss = loss_object(real_label, torch.ones_like(real_label))
+        # Loss with the generated image
+        generated_loss = loss_object(fake_label, torch.zeros_like(fake_label))
+        total = real_loss + generated_loss
+
+        return {"loss":total, "loss_real":real_loss, "loss_fake":generated_loss}
+
+    def generator_loss(self,fake_label, out, img):
+        # Want to make the answer of the discriminator all close to one
+        loss_object = adversarial_loss()
+        gan_loss = loss_object(fake_label, torch.ones_like(fake_label))
+        #difference in image 
+        loss_l1 = torch.mean(torch.absolute(img - out))
+        total = gan_loss + (self.landa * loss_l1) 
+        return {"loss":total}  
+
+    def loss_function(self,recons_x, x, mu, log_var):
+        """
+        Computes the VAE loss function.
+        """
+        recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+    
+        loss = torch.mean(recons_loss + kld_loss, dim=0)
+        
+        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
+
+
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        data, target = batch
+        target = target.to(torch.float)
+
+        # train generator
+        if optimizer_idx == 0:
+
+            # generate images
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+            loss_dict = self.loss_function(recons_x, x, mu, log_var)
+            self.log("Generator Traning Loss - VAE error", loss_dict)
+            return loss_dict["loss"]
+
+        # train generator
+        if optimizer_idx == 1:
+
+            # generate images
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+            loss_dict = self.generator_loss(fake_label, recons_x, x)
+            self.log("Generator Traning Loss - Generator error",loss_dict)
+            return loss_dict["loss"]
+
+        # train discriminator
+        if optimizer_idx == 2:
+            # Measure discriminator's ability to classify real from generated samples
+
+            # how well can it label as real?
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+            loss_dict = self.discriminator_loss(real_label, fake_label)
+            #self.log("Discriminator_loss real image", loss_dict["loss"])
+            self.log_dict({
+                    'Discriminator loss': loss_dict['loss'],
+                    'Discriminator real_loss': loss_dict['loss_real'],
+                    'Discriminator fake_loss': loss_dict['loss_fake']
+                })
+
+            return loss_dict["loss"]
+
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+
+        recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+        loss_Discriminator = self.discriminator_loss(real_label, fake_label)
+        self.log("GAN_loss validation real image", loss_Discriminator)
+        loss_Generator = self.generator_loss(fake_label, recons_x, x)
+        self.log("GAN_loss validation fake image", loss_Generator)
+
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'val_loss': loss_dict['loss'],
+            'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'val_KLD': loss_dict['KLD']
+        })
+
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+        loss_Discriminator = self.discriminator_loss(real_label, fake_label)
+        self.log("GAN_loss test real image", loss_Discriminator)
+        loss_Generator = self.generator_loss(fake_label, recons_x, x)
+        self.log("GAN_loss test fake image", loss_Generator)
+
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'test_loss': loss_dict['loss'],
+            'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'test_KLD': loss_dict['KLD']
+        })
+
+    def configure_optimizers(self):
+        optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
+        lr_scheduler_config_1 = {
+            "scheduler": lr_scheduler1,
+            "interval": "epoch",
+            "frequency": self.freq_generator,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
+        lr_scheduler_config_2 = {
+            "scheduler": lr_scheduler2,
+            "interval": "epoch",
+            "frequency": self.freq_discriminator,
+            "monitor": "val_loss",
+            "strict": True,
+        }
+        return [optimizer1, optimizer1, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_1, lr_scheduler_config_2]
+        
+
 
 
 class ViTVAE_PatchGAN(LightningModule):
@@ -263,7 +477,7 @@ class ViTVAE_PatchGAN(LightningModule):
     def forward(self, img, labels):
         # # Generator
         out, mean, log_var = self.generator(img,labels)
-
+        print("Frequency generator {} Frequency Discriminator {}".format(self.freq_generator, self.freq_discriminator))
         # # Discriminator
         real_label = self.discriminator(img)
         fake_label = self.discriminator(out)
@@ -406,7 +620,7 @@ class ViTVAE_PatchGAN(LightningModule):
         lr_scheduler_config_1 = {
             "scheduler": lr_scheduler1,
             "interval": "epoch",
-            "frequency": freq_generator,
+            "frequency": self.freq_generator,
             "monitor": "val_loss",
             "strict": True,
         }
@@ -414,14 +628,12 @@ class ViTVAE_PatchGAN(LightningModule):
         lr_scheduler_config_2 = {
             "scheduler": lr_scheduler2,
             "interval": "epoch",
-            "frequency": freq_discriminator,
+            "frequency": self.freq_discriminator,
             "monitor": "val_loss",
             "strict": True,
         }
         return [optimizer1, optimizer1, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_1, lr_scheduler_config_2]
-        
 
-    # EN el original he cambiado el error del discriminador y generador para que devuelvan un diccionario
 
 
 class ViT(LightningModule):
