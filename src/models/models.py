@@ -287,9 +287,9 @@ class ViTVAE_PatchGAN(LightningModule):
         # loss_object = nn.CrossEntropyLoss()
         loss_object = nn.BCEWithLogitsLoss()
         
-        real_loss = loss_object(torch.ones_like(real_label),real_label)
+        real_loss = loss_object(real_label, torch.ones_like(real_label))
         # Loss with the generated image
-        generated_loss = loss_object(torch.zeros_like(fake_label), fake_label)
+        generated_loss = loss_object(fake_label, torch.zeros_like(fake_label))
         total = real_loss + generated_loss
 
         return {"loss":total, "loss_real":real_loss, "loss_fake":generated_loss}
@@ -297,7 +297,7 @@ class ViTVAE_PatchGAN(LightningModule):
     def generator_loss(self,fake_label, out, img):
         # Want to make the answer of the discriminator all close to one
         loss_object = nn.CrossEntropyLoss()
-        gan_loss = loss_object(torch.ones_like(fake_label), fake_label)
+        gan_loss = loss_object( fake_label, torch.ones_like(fake_label))
         #difference in image 
         loss_l1 = torch.mean(torch.absolute(img - out))
         total = gan_loss + (self.landa * loss_l1) 

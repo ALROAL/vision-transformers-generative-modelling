@@ -29,6 +29,7 @@ def main(
     patch_size: int = 16,
     batch_size: int = 256,
     ngf: int = 8,
+    kl_weight : int = 1e-5
 ):
     filename = "_".join(
         [
