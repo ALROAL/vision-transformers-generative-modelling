@@ -366,14 +366,24 @@ class ViTVAE_GAN(LightningModule):
             # how well can it label as real?
             recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
             loss_dict_real = self.adversarial_loss(real_label, 1)
-            loss_dict_fake = self.adversarial_loss(fake_label, 0)
             #self.log("Discriminator_loss real image", loss_dict["loss"])
-            loss_dict = { 'Discriminator loss': loss_dict_real + loss_dict_fake,
-                            'Discriminator real_loss': loss_dict_real,
-                            'Discriminator fake_loss': loss_dict_fake}
+            loss_dict = {'Discriminator real_loss': loss_dict_real}
             self.log_dict("Discriminator Traning Loss ",loss_dict)
 
-            return loss_dict["loss"]
+            return loss_dict["Discriminator real_loss"]
+        
+                # train discriminator
+        if optimizer_idx == 3:
+            # Measure discriminator's ability to classify real from generated samples
+
+            # how well can it label as real?
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+            loss_dict_fake = self.adversarial_loss(fake_label, 0)
+            #self.log("Discriminator_loss real image", loss_dict["loss"])
+            loss_dict = { 'Discriminator fake_loss': loss_dict_fake}
+            self.log_dict("Discriminator Traning Loss ",loss_dict)
+
+            return loss_dict["Discriminator fake_loss"]
 
 
     def validation_step(self, batch, batch_idx):
@@ -418,17 +428,13 @@ class ViTVAE_GAN(LightningModule):
         lr_scheduler_config_1 = {
             "scheduler": lr_scheduler1,
             "interval": "epoch",
-            "frequency": self.freq_generator,
-            "monitor": "val_loss",
-            "strict": True,}
-        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
+            "monitor": "val_loss",}
+        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2, patience=6)
         lr_scheduler_config_2 = {
             "scheduler": lr_scheduler2,
             "interval": "epoch",
-            "frequency": self.freq_discriminator,
-            "monitor": "val_loss",
-            "strict": True,}
-        return [optimizer1, optimizer1, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_1, lr_scheduler_config_2]
+            "monitor": "val_loss",}
+        return [optimizer1, optimizer1, optimizer2, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_2]
         
 
 
