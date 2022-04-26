@@ -67,6 +67,7 @@ class Discriminator_DC(nn.Module):
         x = F.leaky_relu(self.cv5(x), 0.2, True)
         x = torch.sigmoid(self.cv6(x))
         print(x.shape)
+        print(x.view(-1, 1).squeeze(1))
         return x.view(-1, 1).squeeze(1)
 
 class Discriminator_Patch(nn.Module):
@@ -306,16 +307,16 @@ class ViTVAE_GAN(LightningModule):
         # loss_object = nn.CrossEntropyLoss()
         # loss_object = self.adversarial_loss(real_label, 1)
         
-        real_loss = self.adversarial_loss(real_label, 1)
+        real_loss = self.adversarial_loss(real_label, torch.ones(1))
         # Loss with the generated image
-        generated_loss = self.adversarial_loss(fake_label, 0)
+        generated_loss = self.adversarial_loss(fake_label, torch.zeros(0))
         #total = real_loss + generated_loss
 
         return {"loss_real":real_loss, "loss_fake":generated_loss}
 
     def generator_loss(self,fake_label, out, img):
         # Want to make the answer of the discriminator all close to one
-        gan_loss = self.adversarial_loss(fake_label, 1)
+        gan_loss = self.adversarial_loss(fake_label, torch.ones(0))
         #difference in image 
         #loss_l1 = torch.mean(torch.absolute(img - out))
         total = gan_loss #+ (self.landa * loss_l1) 
@@ -419,16 +420,14 @@ class ViTVAE_GAN(LightningModule):
             "interval": "epoch",
             "frequency": self.freq_generator,
             "monitor": "val_loss",
-            "strict": True,
-        }
+            "strict": True,}
         lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
         lr_scheduler_config_2 = {
             "scheduler": lr_scheduler2,
             "interval": "epoch",
             "frequency": self.freq_discriminator,
             "monitor": "val_loss",
-            "strict": True,
-        }
+            "strict": True,}
         return [optimizer1, optimizer1, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_1, lr_scheduler_config_2]
         
 
@@ -618,6 +617,194 @@ class ViTVAE_PatchGAN(LightningModule):
             'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
             'test_KLD': loss_dict['KLD']
         })
+        
+    def configure_optimizers(self):
+        optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
+        return [optimizer1, optimizer1, optimizer2], [lr_scheduler1]
+
+   
+
+
+
+    
+class ViTVAE_PatchGAN_prepared(LightningModule):
+    def __init__(
+        self,
+        image_size=(128,128),
+        patch_size=16,
+        num_classes = 4,
+        dim=256,
+        depth=4,
+        heads=8,
+        mlp_dim=256,
+        channels=3,
+        dim_head=64,
+        ngf = 8,
+        dropout=0.0,
+        emb_dropout=0.0,
+        landa = 100,
+        kl_weight=1e-5,
+        lr=1e-4,
+        frequency_generator = 1,
+        frequency_discriminator = 1
+        ):
+        
+        super().__init__()
+
+
+        self.generator =   Generator(image_size=image_size,
+                                   patch_size=patch_size,
+                                   num_classes=num_classes,
+                                   dim=dim,
+                                   depth=depth,
+                                   heads=heads,
+                                   mlp_dim=mlp_dim,
+                                   channels=channels,
+                                   dim_head=dim_head,
+                                   ngf=ngf,
+                                   dropout=dropout,
+                                   emb_dropout=emb_dropout)
+        #CViTVAE.load_from_checkpoint(\"..\\models\\CViTVAE2022-04-20-2039\\CViTVAE-epoch=150.ckpt\")
+        
+
+        # For now we will have a normal Discriminator; then I will change it to PatchGAN
+        self.discriminator = Discriminator_Patch()
+        self.landa =landa
+        self.lr = lr
+        self.kl_weight = kl_weight
+        self.save_hyperparameters()
+        self.freq_generator = frequency_generator
+        self.freq_discriminator = frequency_discriminator
+
+
+    def forward(self, img, labels):
+        # # Generator
+        out, mean, log_var = self.generator(img,labels)
+        print("Frequency generator {} Frequency Discriminator {}".format(self.freq_generator, self.freq_discriminator))
+        # # Discriminator
+        real_label = self.discriminator(img)
+        fake_label = self.discriminator(out)
+
+        return out, img, mean, log_var, real_label, fake_label
+    
+
+
+    def sample(self, num_samples):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :return: (Tensor)
+        """
+        z = torch.randn(num_samples, 1, self.dim)
+        labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, labels], dim = 1)
+        samples = self.decoder(z)
+
+        return samples
+
+    def discriminator_loss(self, real_label, fake_label):
+        # Loss with the real image
+        # loss_object = nn.CrossEntropyLoss()
+        loss_object = nn.BCEWithLogitsLoss()
+        
+        real_loss = loss_object(real_label, torch.ones_like(real_label))
+        # Loss with the generated image
+        generated_loss = loss_object(fake_label, torch.zeros_like(fake_label))
+        #total = real_loss + generated_loss
+        
+        #return {"loss":total, "loss_real":real_loss, "loss_fake":generated_loss}
+        return {"loss_real":real_loss, "loss_fake":generated_loss}
+
+    def generator_loss(self,fake_label, out, img):
+        # Want to make the answer of the discriminator all close to one
+        loss_object = nn.CrossEntropyLoss()
+        gan_loss = loss_object( fake_label, torch.ones_like(fake_label))
+        #difference in image 
+        loss_l1 = torch.mean(torch.absolute(img - out))
+        total = gan_loss + (self.landa * loss_l1) 
+        return {"loss":total}  
+
+    def loss_function(self,recons_x, x, mu, log_var):
+        """
+        Computes the VAE loss function.
+        """
+        recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+        
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+    
+        loss = torch.mean(recons_loss + kld_loss, dim=0)
+        
+        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
+
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        data, target = batch
+        target = target.to(torch.float)
+
+
+        # train generator
+        if optimizer_idx == 0:
+
+            # generate images
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+            loss_dict = self.generator_loss(fake_label, recons_x, x)
+            self.log("Generator Traning Loss - Generator error",loss_dict)
+            return loss_dict["loss"]
+
+        # train discriminator
+        if optimizer_idx == 1:
+            # Measure discriminator's ability to classify real from generated samples
+
+            # how well can it label as real?
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+            loss_dict = self.discriminator_loss(real_label, fake_label)
+            #self.log("Discriminator_loss real image", loss_dict["loss"])
+            self.log_dict({
+                    'Discriminator real_loss': loss_dict['loss_real'],
+                    'Discriminator fake_loss': loss_dict['loss_fake']
+                })
+
+            return loss_dict
+
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+
+        recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+        loss_Discriminator = self.discriminator_loss(real_label, fake_label)
+        self.log("GAN_loss validation real image", loss_Discriminator)
+        loss_Generator = self.generator_loss(fake_label, recons_x, x)
+        self.log("GAN_loss validation fake image", loss_Generator)
+
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'val_loss': loss_dict['loss'],
+            'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'val_KLD': loss_dict['KLD']
+        })
+
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+
+        loss_Discriminator = self.discriminator_loss(real_label, fake_label)
+        self.log("GAN_loss test real image", loss_Discriminator)
+        loss_Generator = self.generator_loss(fake_label, recons_x, x)
+        self.log("GAN_loss test fake image", loss_Generator)
+
+        loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        self.log_dict({
+            'test_loss': loss_dict['loss'],
+            'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+            'test_KLD': loss_dict['KLD']
+        })
 
     def configure_optimizers(self):
         optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
@@ -638,7 +825,7 @@ class ViTVAE_PatchGAN(LightningModule):
             "monitor": "val_loss",
             "strict": True,
         }
-        return [optimizer1, optimizer1, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_1, lr_scheduler_config_2]
+        return [optimizer1, optimizer2], [lr_scheduler_config_1, lr_scheduler_config_2]
 
 
 
