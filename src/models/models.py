@@ -580,7 +580,22 @@ class ViTVAE_PatchGAN(LightningModule):
                     'Discriminator fake_loss': loss_dict['loss_fake']
                 })
 
-            return loss_dict
+            return loss_dict["loss_real"]
+
+        # train discriminator
+        if optimizer_idx == 3:
+            # Measure discriminator's ability to classify real from generated samples
+
+            # how well can it label as real?
+            recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
+            loss_dict = self.discriminator_loss(real_label, fake_label)
+            #self.log("Discriminator_loss real image", loss_dict["loss"])
+            self.log_dict({
+                    'Discriminator real_loss': loss_dict['loss_real'],
+                    'Discriminator fake_loss': loss_dict['loss_fake']
+                })
+
+            return loss_dict["loss_fake"]
 
 
     def validation_step(self, batch, batch_idx):
@@ -621,8 +636,13 @@ class ViTVAE_PatchGAN(LightningModule):
     def configure_optimizers(self):
         optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
         optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        
         lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
-        return [optimizer1, optimizer1, optimizer2], [lr_scheduler1]
+        lr_scheduler_config_1 = {
+            "scheduler": lr_scheduler1,
+            "monitor": "val_loss",
+        }
+        return [optimizer1, optimizer1, optimizer2, optimizer2], [lr_scheduler1]
 
    
 
