@@ -30,8 +30,8 @@ def main(
     batch_size: int = 256,
     ngf: int = 8,
     kl_weight : int = 1e-5,
-    frequency_generator: int = 10,
-    frequency_discriminator:int = 10
+    frequency_generator: int = 1,
+    frequency_discriminator:int = 1
 ):
     filename = "_".join(
         [
@@ -157,6 +157,25 @@ def main(
         )
         
     if model_type == "ViTVAE_PatchGAN":
+        model = ViTVAE_PatchGAN(
+            image_size=(128, 128),
+            dim=dim,
+            frequency_generator = frequency_generator,
+            frequency_discriminator = frequency_discriminator 
+        )
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=_PATH_MODELS + "/" + model_type,
+            filename=filename,
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
+        )
+        
+    if model_type == "ViTVAE_PatchGAN_prepared":
         model = ViTVAE_PatchGAN(
             image_size=(128, 128),
             dim=dim,
