@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_PatchGAN, ViTVAE_GAN
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared
 
 
 def main(
@@ -26,6 +26,7 @@ def main(
     heads: int = 8,
     mlp_dim: int = 1024,
     lr: float = 1e-4,
+    lr_discriminator: float = 1e-4,
     patch_size: int = 16,
     batch_size: int = 256,
     ngf: int = 8,
