@@ -231,6 +231,7 @@ class ViTVAE_GAN(LightningModule):
         landa = 100,
         kl_weight=1e-5,
         lr=1e-4,
+        lr_discriminator = 1e-4,
         frequency_generator = 10,
         frequency_discriminator = 10
         ):
@@ -255,6 +256,7 @@ class ViTVAE_GAN(LightningModule):
         # For now we will have a normal Discriminator; then I will change it to PatchGAN
         self.discriminator = Discriminator_DC()
         self.landa =landa
+        self.lr_discriminator = lr_discriminator
         self.lr = lr
         self.kl_weight = kl_weight
         self.save_hyperparameters()
@@ -415,7 +417,7 @@ class ViTVAE_GAN(LightningModule):
 
     def configure_optimizers(self):
         optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
-        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr_discriminator)
         lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
         lr_scheduler_config_1 = {
             "scheduler": lr_scheduler1,
@@ -449,6 +451,7 @@ class ViTVAE_PatchGAN(LightningModule):
         landa = 100,
         kl_weight=1e-5,
         lr=1e-4,
+        lr_discriminator = 1e-4,
         frequency_generator = 1,
         frequency_discriminator = 1
         ):
@@ -474,6 +477,7 @@ class ViTVAE_PatchGAN(LightningModule):
         self.discriminator = Discriminator_Patch()
         self.landa =landa
         self.lr = lr
+        self.lr_discriminator = lr_discriminator
         self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
@@ -625,7 +629,7 @@ class ViTVAE_PatchGAN(LightningModule):
     
     def configure_optimizers(self):
         optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
-        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr_discriminator)
         lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
         lr_scheduler_config_1 = {
             "scheduler": lr_scheduler1,
@@ -814,14 +818,14 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
 
     def configure_optimizers(self):
         optimizer1 = optim.Adam(self.generator.parameters(), lr=self.lr)
-        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        optimizer2 = optim.Adam(self.discriminator.parameters(), lr = self.lr_discriminator)
         lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
         lr_scheduler_config_1 = {
             "scheduler": lr_scheduler1,
             "interval": "epoch",
             "monitor": "val_loss",
         }
-        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2,     patience=6)
+        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2, patience=6)
         lr_scheduler_config_2 = {
             "scheduler": lr_scheduler2,
             "interval": "epoch",
