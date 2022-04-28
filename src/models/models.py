@@ -1454,6 +1454,10 @@ class CViTVAE(LightningModule):
         samples = self.decoder(z)
         return samples
 
+    def reconstruct(self,img,label):
+        x, img, mean, log_var = self.forward(img,label)
+        return x, img
+
     def loss_function(self,recons_x, x, mu, log_var):
         """
         Computes the VAE loss function.
