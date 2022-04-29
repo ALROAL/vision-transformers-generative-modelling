@@ -196,7 +196,7 @@ def main(
         )
         
     if model_type == "ViTVAE_GAN_prepared":
-        model = ViTVAE_GAN_preapared(
+        model = ViTVAE_GAN_prepared(
             image_size=(128, 128),
             dim=dim,
             frequency_generator = frequency_generator,
