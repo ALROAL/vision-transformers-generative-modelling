@@ -231,23 +231,8 @@ def main(
 
         celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers,classify=True)
 
-    if model_type == "Classifier2":
-        model = Classifier(lr=lr)
-        checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type + time,
-            filename='Classifier2-{epoch}',
-            monitor="val_loss",
-            mode="min",
-            save_top_k=1,
-            auto_insert_metric_name=True,
-        )
-        early_stopping_callback = EarlyStopping(
-            monitor="val_loss", patience=20, verbose=True, mode="min", strict=False
-        )
 
-        celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers,classify=True)
-
-    if (model_type != "Classifier") and (model_type != "Classifier2"):
+    if model_type != "Classifier":
         celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
