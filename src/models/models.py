@@ -2078,3 +2078,70 @@ class Classifier(LightningModule):
         }
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+
+
+class Classifier2(LightningModule):
+    def __init__(self,
+                 lr=1e-3):
+        super().__init__()
+
+        # init a pretrained resnet
+        backbone = models.convnext_tiny(pretrained=True)
+        layers = list(backbone.children())[:-1]
+        self.feature_extractor = nn.Sequential(*layers)
+
+        num_classes = 6
+        self.classifier = nn.Sequential(
+            models.convnext.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True), nn.Flatten(1), nn.Linear(768, num_classes)
+        )
+        self.loss_function = nn.CrossEntropyLoss()
+        self.lr = lr
+        self.save_hyperparameters()
+
+    def forward(self, x):
+        representations = self.feature_extractor(x)
+        x = self.classifier(representations)
+        return x.softmax(dim=1)
+    
+    def training_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        pred = self(data)
+        loss = self.loss_function(pred,target)
+        self.log("train_loss",loss)
+        acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
+        self.log("Train Accuracy", acc)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        pred = self(data)
+        loss = self.loss_function(pred,target)
+        self.log("val_loss", loss)
+        acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
+        self.log("Validation Accuracy", acc)
+
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        pred = self(data)
+        loss = self.loss_function(pred,target)
+        self.log("test_loss", loss)
+        acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
+        self.log("Test Accuracy", acc)
+    
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        return self(batch.argmax(dim=1))
+
+    def configure_optimizers(self):
+        optimizer = optim.AdamW(self.parameters(), lr=self.lr)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "interval": "epoch",
+            "monitor": "val_loss",
+            "strict": False,
+        }
+
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
