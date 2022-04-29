@@ -1650,6 +1650,7 @@ class ConvCVAE(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
+        target = target.to(torch.float)
         recons_x, x, mu, log_var = self(data, target)
         loss_dict = self.loss_function(recons_x, x, mu, log_var)
         self.log_dict({
@@ -1660,6 +1661,7 @@ class ConvCVAE(LightningModule):
     
     def test_step(self, batch, batch_idx):
         data, target = batch
+        target = target.to(torch.float)
         recons_x, x, mu, log_var = self(data, target)
         loss_dict = self.loss_function(recons_x, x, mu, log_var)
         self.log_dict({
