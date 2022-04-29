@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared
 
 
 def main(
@@ -177,7 +177,26 @@ def main(
         )
         
     if model_type == "ViTVAE_PatchGAN_prepared":
-        model = ViTVAE_PatchGAN(
+        model = ViTVAE_PatchGAN_prepared(
+            image_size=(128, 128),
+            dim=dim,
+            frequency_generator = frequency_generator,
+            frequency_discriminator = frequency_discriminator 
+        )
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=_PATH_MODELS + "/" + model_type,
+            filename=filename,
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
+        )
+        
+    if model_type == "ViTVAE_GAN_prepared":
+        model = ViTVAE_GAN_preapared(
             image_size=(128, 128),
             dim=dim,
             frequency_generator = frequency_generator,
