@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.utils.data
+import torchvision.models as models
 from torch import nn, optim
 from torch.nn import functional as F
 from einops import rearrange, repeat
@@ -97,7 +98,7 @@ class Generator(nn.Module):
         self,
         image_size=(128, 128),
         patch_size=16,
-        num_classes=4,
+        num_classes=6,
         dim=256,
         depth=4,
         heads=8,
@@ -233,7 +234,7 @@ class ViTVAE_GAN_2(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes = 4,
+        num_classes=6,
         dim=256,
         depth=4,
         heads=8,
@@ -452,7 +453,7 @@ class ViTVAE_GAN(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes = 4,
+        num_classes=6,
         dim=256,
         depth=4,
         heads=8,
@@ -673,7 +674,7 @@ class ViTVAE_PatchGAN(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes = 4,
+        num_classes=6,
         dim=256,
         depth=4,
         heads=8,
@@ -885,7 +886,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes = 4,
+        num_classes=6,
         dim=256,
         depth=4,
         heads=8,
@@ -1372,7 +1373,7 @@ class ConvCVAE(LightningModule):
     def __init__(
         self,
         image_size=(128, 128),
-        num_classes=4,
+        num_classes=6,
         dim=256,
         channels=3,
         ngf=8,
@@ -1550,7 +1551,7 @@ class CViTVAE(LightningModule):
         self,
         image_size=(128, 128),
         patch_size=16,
-        num_classes=4,
+        num_classes=6,
         dim=256,
         depth=4,
         heads=8,
@@ -1748,3 +1749,26 @@ class CViTVAE(LightningModule):
         }
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+
+
+
+
+class Classifier(LightningModule):
+    def __init__(self):
+        super().__init__()
+
+        # init a pretrained resnet
+        backbone = models.convnext_tiny(pretrained=True)
+        layers = list(backbone.children())[:-1]
+        layers.append(list(backbone.classifier)[:-1])
+        feature_extractor = nn.Sequential(*layers)
+
+        # use the pretrained model to classify cifar-10 (10 image classes)
+        num_target_classes = 6
+        self.classifier = nn.Linear(768, num_target_classes)
+
+    def forward(self, x):
+        self.feature_extractor.eval()
+        with torch.no_grad():
+            representations = self.feature_extractor(x)
+        x = self.classifier(representations)

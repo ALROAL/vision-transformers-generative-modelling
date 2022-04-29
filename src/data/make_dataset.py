@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Callable, List, Optional, Union
 
+import PIL
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -27,26 +28,58 @@ class DebuggedCelebA(CelebA):
             col_idx_2 = self.attr_names.index('Blond_Hair')
             col_idx_3 = self.attr_names.index('Brown_Hair')
             col_idx_4 = self.attr_names.index('Black_Hair')
-            return target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]]
 
-            # if target[col_idx_1] == 0:
-            #     if target[col_idx_2] == 0:
-            #         return torch.tensor([1, 0, 0, 0])
-            #     else:
-            #         return torch.tensor([0, 1, 0, 0])
-            # else:
-            #     if target[col_idx_2] == 0:
-            #         return torch.tensor([0, 0, 1, 0])
-            #     else:
-            #         return torch.tensor([0, 0, 0, 1])
-
+            if torch.equal(target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]],torch.tensor([1,1,0,0],dtype=torch.int64)): # Blond Male
+                return torch.tensor([1,0,0,0,0,0])
+            elif torch.equal(target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]],torch.tensor([1,0,1,0],dtype=torch.int64)): # Brown Male
+                return torch.tensor([0,1,0,0,0,0])
+            elif torch.equal(target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]],torch.tensor([1,0,0,1],dtype=torch.int64)): # Black Male
+                return torch.tensor([0,0,1,0,0,0])
+            elif torch.equal(target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]],torch.tensor([0,1,0,0],dtype=torch.int64)): # Blond Female
+                return torch.tensor([0,0,0,1,0,0])
+            elif torch.equal(target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]],torch.tensor([0,0,1,0],dtype=torch.int64)): # Brown Female
+                return torch.tensor([0,0,0,0,1,0])
+            elif torch.equal(target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]],torch.tensor([0,0,0,1],dtype=torch.int64)): # Black Female
+                return torch.tensor([0,0,0,0,0,1])
+            else:
+                if target[col_idx_1] == 1:
+                    if target[col_idx_3] == 1:
+                        return torch.tensor([0,1,0,0,0,0]) # Brown Male
+                    elif target[col_idx_4] == 1:
+                        return torch.tensor([0,0,1,0,0,0]) # Black Male
+                    else:
+                        return torch.tensor([1,0,0,0,0,0]) # Blond Male
+                if target[col_idx_1] == 0:
+                    if target[col_idx_3] == 1:
+                        return torch.tensor([0,0,0,0,1,0]) # Brown Female
+                    elif target[col_idx_4] == 1:
+                        return torch.tensor([0,0,0,0,0,1]) # Black Female
+                    else:
+                        return torch.tensor([0,0,0,1,0,0]) # Blond Female
+                    
+                # return target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]]
+        
         super().__init__(
             root, split, target_type, transform, target_transform, download
         )
+        self.first_getitem = True
 
     def _check_integrity(self):
         return True
 
+    def __len__(self):
+        if self.first_getitem == True:
+            idx_blond = self.attr_names.index('Blond_Hair')
+            idx_brown = self.attr_names.index('Brown_Hair')
+            idx_black = self.attr_names.index('Black_Hair')
+            
+            idxs = torch.where(torch.sum(self.attr[:,[idx_blond,idx_brown,idx_black]],axis=1) != 0)[0]
+            self.filename = list(np.array(self.filename)[idxs])
+            self.attr = self.attr[idxs,:]
+            self.first_getitem = False
+        
+        return len(self.attr)
+        
 
 class CelebADataModule(pl.LightningDataModule):
     def __init__(
@@ -70,6 +103,7 @@ class CelebADataModule(pl.LightningDataModule):
             self.celeb_test = DebuggedCelebA(
                 self.data_dir, split="test", transform=transforms_seq
             )
+
         if stage == "fit" or stage is None:
             self.celeb_train = DebuggedCelebA(
                 self.data_dir, split="train", transform=transforms_seq
