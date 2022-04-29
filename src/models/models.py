@@ -246,7 +246,6 @@ class ViTVAE_GAN(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
-        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 10,
@@ -274,7 +273,6 @@ class ViTVAE_GAN(LightningModule):
         self.landa =landa
         self.lr_discriminator = lr_discriminator
         self.lr = lr
-        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -461,7 +459,6 @@ class ViTVAE_GAN_prepared(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
-        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 10,
@@ -490,7 +487,6 @@ class ViTVAE_GAN_prepared(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
-        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -664,7 +660,6 @@ class ViTVAE_PatchGAN(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
-        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 1,
@@ -693,7 +688,6 @@ class ViTVAE_PatchGAN(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
-        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -864,7 +858,6 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
-        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 1,
@@ -897,7 +890,6 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
-        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -1046,7 +1038,6 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
-        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 1,
@@ -1077,7 +1068,6 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
-        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -1910,8 +1900,6 @@ class CViTVAE(LightningModule):
         ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
-        landa = 1000,
-        kl_weight=1e-5,
         lr=1e-4
     ):
         super().__init__()
@@ -1931,10 +1919,8 @@ class CViTVAE(LightningModule):
 
 
 
-        self.landa =landa
         self.lr = lr
         self.save_hyperparameters()
-        self.kl_weight = kl_weight
         self.dim = dim
 
 
