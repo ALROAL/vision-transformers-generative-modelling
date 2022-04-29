@@ -104,8 +104,8 @@ class CelebADataModule(pl.LightningDataModule):
             transforms_seq = transforms.Compose(
                 [transforms.Resize((128, 128)),
                  transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225])],
-                 transforms.ToTensor()
+                                    std=[0.229, 0.224, 0.225]),
+                 transforms.ToTensor()]
             )
         
         if stage == "test" or stage is None:
