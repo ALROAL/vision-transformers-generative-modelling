@@ -83,12 +83,13 @@ class DebuggedCelebA(CelebA):
 
 class CelebADataModule(pl.LightningDataModule):
     def __init__(
-        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0
+        self, data_dir: str = _PATH_DATA, batch_size: int = 64, num_workers: int = 0, classify = False
     ):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.classify = classify
 
     def prepare_data(self):
         # download
@@ -99,6 +100,14 @@ class CelebADataModule(pl.LightningDataModule):
         transforms_seq = transforms.Compose(
             [transforms.Resize((128, 128)), transforms.ToTensor()]
         )
+        if self.classify:
+            transforms_seq = transforms.Compose(
+                [transforms.Resize((128, 128)),
+                 transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])],
+                 transforms.ToTensor()
+            )
+        
         if stage == "test" or stage is None:
             self.celeb_test = DebuggedCelebA(
                 self.data_dir, split="test", transform=transforms_seq
