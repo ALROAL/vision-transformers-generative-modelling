@@ -2024,8 +2024,7 @@ class Classifier(LightningModule):
         # init a pretrained resnet
         backbone = models.convnext_tiny(pretrained=True)
         layers = list(backbone.children())[:-1]
-        layers.append(list(backbone.classifier)[:-1])
-        feature_extractor = nn.Sequential(*layers)
+        self.feature_extractor = nn.Sequential(*layers)
 
         # use the pretrained model to classify cifar-10 (10 image classes)
         num_target_classes = 6

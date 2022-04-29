@@ -34,21 +34,22 @@ def main(
     frequency_generator: int = 1,
     frequency_discriminator:int = 1
 ):
-    filename = "_".join(
-        [
-            str(p)
-            for p in [
-                model_type,
-                patch_size,
-                dim,
-                depth,
-                heads,
-                mlp_dim,
-                batch_size,
-                kl_weight,
-            ]
-        ]
-    )
+    time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
+
+    # filename = "_".join(
+    #     [
+    #         str(p)
+    #         for p in [
+    #             model_type,
+    #             patch_size,
+    #             dim,
+    #             depth,
+    #             heads,
+    #             mlp_dim,
+    #             batch_size
+    #         ]
+    #     ]
+    # )
 
     if model_type == "ViT":
         model = ViT(
@@ -64,8 +65,8 @@ def main(
             lr=lr,
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViT-{epoch}',
             monitor="val_acc",
             mode="max",
             save_top_k=1,
@@ -86,8 +87,8 @@ def main(
             mlp_dim=mlp_dim,
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -127,8 +128,8 @@ def main(
             dim=dim
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ConvCVAE-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -146,8 +147,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_GAN-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -165,8 +166,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_PatchGAN-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -184,8 +185,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_PatchGAN_prepared-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -203,8 +204,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_GAN_prepared-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
