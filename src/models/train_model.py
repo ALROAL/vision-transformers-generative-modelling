@@ -13,12 +13,12 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier
 
 
 def main(
     name: str = "test",
-    model_type: str = "ViT",
+    model_type: str = "Classifier",
     max_epochs: int = 10,
     num_workers: int = 0,
     dim: int = 1024,
@@ -34,27 +34,28 @@ def main(
     frequency_generator: int = 1,
     frequency_discriminator:int = 1
 ):
-    filename = "_".join(
-        [
-            str(p)
-            for p in [
-                model_type,
-                patch_size,
-                dim,
-                depth,
-                heads,
-                mlp_dim,
-                batch_size,
-                kl_weight,
-            ]
-        ]
-    )
+    time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
+
+    # filename = "_".join(
+    #     [
+    #         str(p)
+    #         for p in [
+    #             model_type,
+    #             patch_size,
+    #             dim,
+    #             depth,
+    #             heads,
+    #             mlp_dim,
+    #             batch_size
+    #         ]
+    #     ]
+    # )
 
     if model_type == "ViT":
         model = ViT(
             image_size=32,
             patch_size=patch_size,
-            num_classes=10,
+            num_classes=6,
             dim=dim,
             depth=depth,
             heads=heads,
@@ -64,8 +65,8 @@ def main(
             lr=lr,
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViT-{epoch}',
             monitor="val_acc",
             mode="max",
             save_top_k=1,
@@ -86,8 +87,8 @@ def main(
             mlp_dim=mlp_dim,
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -127,8 +128,8 @@ def main(
             dim=dim
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ConvCVAE-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -146,8 +147,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_GAN-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -165,8 +166,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_PatchGAN-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -184,8 +185,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_PatchGAN_prepared-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -203,8 +204,8 @@ def main(
             frequency_discriminator = frequency_discriminator 
         )
         checkpoint_callback = ModelCheckpoint(
-            dirpath=_PATH_MODELS + "/" + model_type,
-            filename=filename,
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='ViTVAE_GAN_prepared-{epoch}',
             monitor="val_loss",
             mode="min",
             save_top_k=1,
@@ -214,7 +215,25 @@ def main(
             monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
         )
 
-    celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
+    if model_type == "Classifier":
+        model = Classifier(lr=lr)
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='Classifier-{epoch}',
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="val_loss", patience=20, verbose=True, mode="min", strict=False
+        )
+
+        celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers,classify=True)
+
+
+    if model_type != "Classifier":
+        celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
