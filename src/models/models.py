@@ -1827,6 +1827,10 @@ class CViTVAE_2(LightningModule):
         z = torch.cat([z, labels], dim = 1)
         samples = self.decoder(z)
         return samples
+    
+    def reconstruct(self,img,label):
+        reconstruction, img, _, _ = self(img,label)
+        return reconstruction, img
 
     def loss_function(self,recons_x, x, mu, log_var):
         """
@@ -1945,6 +1949,10 @@ class CViTVAE(LightningModule):
         z = torch.cat([z, labels], dim = 1)
         samples = self.generator.decoder(z)
         return samples
+    
+    def reconstruct(self,img,label):
+        reconstruction, img, _, _ = self(img,label)
+        return reconstruction, img
 
     def loss_function(self,recons_x, x, mu, log_var):
         """
