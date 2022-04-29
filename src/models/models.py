@@ -2004,7 +2004,8 @@ class CViTVAE(LightningModule):
 
 
 class Classifier(LightningModule):
-    def __init__(self):
+    def __init__(self,
+                 lr=1e-4):
         super().__init__()
 
         # init a pretrained resnet
@@ -2017,6 +2018,8 @@ class Classifier(LightningModule):
             models.convnext.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True), nn.Flatten(1), nn.Linear(768, num_classes)
         )
         self.loss_function = nn.CrossEntropyLoss()
+        self.lr = lr
+        self.save_hyperparameters()
 
     def forward(self, x):
         self.feature_extractor.eval()

@@ -216,7 +216,7 @@ def main(
         )
 
     if model_type == "Classifier":
-        model = Classifier()
+        model = Classifier(lr=lr)
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='Classifier-{epoch}',
