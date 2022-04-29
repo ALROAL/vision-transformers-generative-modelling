@@ -1035,7 +1035,7 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes = 4,
+        num_classes = 6,
         dim=256,
         depth=4,
         heads=8,

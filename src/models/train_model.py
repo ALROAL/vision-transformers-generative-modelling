@@ -54,7 +54,7 @@ def main(
         model = ViT(
             image_size=32,
             patch_size=patch_size,
-            num_classes=10,
+            num_classes=6,
             dim=dim,
             depth=depth,
             heads=heads,
