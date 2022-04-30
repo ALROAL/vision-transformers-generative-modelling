@@ -479,7 +479,7 @@ class ViTVAE_GAN_prepared(LightningModule):
                                    dim_head=dim_head,
                                    ngf=ngf,
                                    dropout=dropout,
-                                   emb_dropout=emb_dropout).load_from_checkpoint(checkpoint_path = "/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-08-2022/CViTVAE-epoch=191.ckpt")
+                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-029-1735/CViTVAE-epoch=174.ckpt"), strict=False)
         
 
         # For now we will have a normal Discriminator; then I will change it to PatchGAN
@@ -878,9 +878,8 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
                                    dim_head=dim_head,
                                    ngf=ngf,
                                    dropout=dropout,
-                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-08-2022/CViTVAE-epoch=191.ckpt"), strict=False)
-        
-        '_IncompatibleKeys'
+                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-029-1735/CViTVAE-epoch=174.ckpt"), strict=False)
+
         
      
         
