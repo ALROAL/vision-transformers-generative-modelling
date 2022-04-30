@@ -876,7 +876,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
     def forward(self, img, labels):
         # # Generator
         print(img.shape)
-        out = self.generator.forward_2(img,labels,img.shape[0])
+        out = self.generator.forward_2(img,img.shape[0])
         mean = 1
         log_var = 2
         real_label = self.discriminator(img)
@@ -1901,6 +1901,7 @@ class CViTVAE(LightningModule):
         self.lr = lr
         self.save_hyperparameters()
         self.dim = dim
+        self.num_classes = num_classes
 
 
 
@@ -1911,11 +1912,10 @@ class CViTVAE(LightningModule):
 
         return out, img, mean, log_var
     
-    def forward_2(self,img,label, num_samples):
+    def forward_2(self,img, num_samples):
         z = torch.randn(num_samples, self.dim, device=img.device)
-        # print(z)
-        # print(z.size())
-        labels = repeat(label, "d -> n d", n = num_samples)
+        label = F.one_hot(torch.randint(0,self.num_classes-1,(num_samples,),device=img.device),num_classes=self.num_classes) #Generate random labels uniformly
+
         z = torch.cat([z, label], dim = 1)
         recons_img = self.decoder(z)
 
