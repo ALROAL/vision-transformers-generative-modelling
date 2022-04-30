@@ -1915,7 +1915,7 @@ class CViTVAE(LightningModule):
         z = torch.randn(num_samples, self.dim)
         print(z)
         print(z.size())
-        #labels = repeat(label, "d -> n d",n=num_samples)
+        labels = repeat(label, "d -> n d", n = num_samples)
         z = torch.cat([z, label], dim = 1)
         recons_img = self.decoder(z)
 

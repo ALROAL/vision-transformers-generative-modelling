@@ -125,7 +125,9 @@ def main(
     if model_type == "ConvCVAE":
         model = ConvCVAE(
             image_size=(128, 128),
-            dim=dim
+            dim=dim,
+            ngf=ngf,
+            lr=lr
         )
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
