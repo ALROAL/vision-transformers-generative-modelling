@@ -21,7 +21,7 @@ def main(
     model_type: str = "Classifier",
     max_epochs: int = 10,
     num_workers: int = 0,
-    dim: int = 1024,
+    dim: int = 256,
     depth: int = 4,
     heads: int = 8,
     mlp_dim: int = 1024,

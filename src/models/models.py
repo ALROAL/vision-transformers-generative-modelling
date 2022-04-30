@@ -119,7 +119,7 @@ class Generator(nn.Module):
 
         num_patches = (self.image_height // patch_height) * (self.image_width // patch_width)
         patch_dim = (1+channels) * patch_height * patch_width
-
+        self.dim = dim
         self.mean_token = nn.Parameter(torch.randn(1, 1, dim))
         self.log_var_token = nn.Parameter(torch.randn(1, 1, dim))
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 2, dim))
@@ -468,18 +468,7 @@ class ViTVAE_GAN_prepared(LightningModule):
         super().__init__()
 
 
-        self.generator = Generator(image_size=image_size,
-                                   patch_size=patch_size,
-                                   num_classes=num_classes,
-                                   dim=dim,
-                                   depth=depth,
-                                   heads=heads,
-                                   mlp_dim=mlp_dim,
-                                   channels=channels,
-                                   dim_head=dim_head,
-                                   ngf=ngf,
-                                   dropout=dropout,
-                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-029-1735/CViTVAE-epoch=174.ckpt"), strict=False)
+        self.generator = CViTVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
         
 
         # For now we will have a normal Discriminator; then I will change it to PatchGAN
@@ -495,8 +484,9 @@ class ViTVAE_GAN_prepared(LightningModule):
 
     def forward(self, img, labels):
         num_samples = img.shape[0]
+        print(num_samples)
         # # Generator
-        out = self.generator.forward_2(img,labels, num_samples)
+        out = self.generator.forward_2(img,labels, 1)
         real_label = self.discriminator(img)
         fake_label = self.discriminator(out)
 
@@ -867,20 +857,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         super().__init__()
 
 
-        self.generator =   Generator(image_size=image_size,
-                                   patch_size=patch_size,
-                                   num_classes=num_classes,
-                                   dim=dim,
-                                   depth=depth,
-                                   heads=heads,
-                                   mlp_dim=mlp_dim,
-                                   channels=channels,
-                                   dim_head=dim_head,
-                                   ngf=ngf,
-                                   dropout=dropout,
-                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt"), strict=False)
-
-        
+        self.generator = CViTVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
      
         
 
@@ -898,8 +875,10 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
     
     def forward(self, img, labels):
         # # Generator
-        out, mean, log_var = self.generator(img,labels)
-
+        print(img.shape)
+        out = self.generator.forward_2(img,labels,img.shape[0])
+        mean = 1
+        log_var = 2
         real_label = self.discriminator(img)
         fake_label = self.discriminator(out)
 
@@ -1046,18 +1025,7 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         super().__init__()
 
 
-        self.generator =   Generator(image_size=image_size,
-                                   patch_size=patch_size,
-                                   num_classes=num_classes,
-                                   dim=dim,
-                                   depth=depth,
-                                   heads=heads,
-                                   mlp_dim=mlp_dim,
-                                   channels=channels,
-                                   dim_head=dim_head,
-                                   ngf=ngf,
-                                   dropout=dropout,
-                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-08-2022/CViTVAE-epoch=191.ckpt"), strict=False)
+        self.generator =  CViTVAE().load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-08-2022/CViTVAE-epoch=191.ckpt"), strict=False)
         
      
         
@@ -1612,6 +1580,8 @@ class ConvCVAE(LightningModule):
         x = self.decoder(z)
 
         return x, img, mean, log_var
+    
+
 
     def sample(self, num_samples, label):
         """
@@ -1940,6 +1910,18 @@ class CViTVAE(LightningModule):
         out, mean, log_var = self.generator(img,labels)
 
         return out, img, mean, log_var
+    
+    def forward_2(self,img,label, num_samples):
+        z = torch.randn(num_samples, self.dim)
+        print(z)
+        print(z.size())
+        #labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, label], dim = 1)
+        recons_img = self.decoder(z)
+
+        return recons_img
+
+    
 
     def sample(self, num_samples, label):
         """
