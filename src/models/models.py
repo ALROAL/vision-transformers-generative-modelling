@@ -874,7 +874,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
     
     def forward(self, img, labels):
         # # Generator
-        print(img.shape)
+        
         out = self.generator.forward_2(img,img.shape[0])
         mean = 1
         log_var = 2
@@ -978,19 +978,19 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
     def configure_optimizers(self):
         optimizer1 = optim.AdamW(self.generator.parameters(), lr=self.lr)
         optimizer2 = optim.AdamW(self.discriminator.parameters(), lr = self.lr_discriminator)
-        lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
-        lr_scheduler_config_1 = {
-            "scheduler": lr_scheduler1,
-            "interval": "epoch",
-            "monitor": "val_loss",
-        }
-        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2, patience=6)
-        lr_scheduler_config_2 = {
-            "scheduler": lr_scheduler2,
-            "interval": "epoch",
-            "monitor": "val_loss",
-        }
-        return [optimizer1, optimizer2, optimizer2], [lr_scheduler_config_1, lr_scheduler_config_2]
+        # lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
+        # lr_scheduler_config_1 = {
+        #     "scheduler": lr_scheduler1,
+        #     "interval": "epoch",
+        #     "monitor": "val_loss",
+        # }
+        # lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2, patience=6)
+        # lr_scheduler_config_2 = {
+        #     "scheduler": lr_scheduler2,
+        #     "interval": "epoch",
+        #     "monitor": "val_loss",
+        # }
+        return [optimizer1, optimizer2, optimizer2]#, [lr_scheduler_config_1, lr_scheduler_config_2]
     
     
     
