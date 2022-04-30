@@ -483,15 +483,13 @@ class ViTVAE_GAN_prepared(LightningModule):
 
 
     def forward(self, img, labels):
-        num_samples = img.shape[0]
         # # Generator
-        out = self.generator.forward_2(img,labels, 1)
+        out = self.generator.forward_2(img,img.shape[0])
         real_label = self.discriminator(img)
         fake_label = self.discriminator(out)
 
         return out, img, real_label, fake_label
     
-
 
     def sample(self, num_samples, label):
         """
