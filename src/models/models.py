@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.utils.data
-import torchvision.models as models
 from torch import nn, optim
 from torch.nn import functional as F
 from einops import rearrange, repeat
@@ -98,7 +97,7 @@ class Generator(nn.Module):
         self,
         image_size=(128, 128),
         patch_size=16,
-        num_classes=6,
+        num_classes=4,
         dim=256,
         depth=4,
         heads=8,
@@ -235,7 +234,7 @@ class ViTVAE_GAN(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes=6,
+        num_classes = 4,
         dim=256,
         depth=4,
         heads=8,
@@ -246,6 +245,7 @@ class ViTVAE_GAN(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
+        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 10,
@@ -273,6 +273,7 @@ class ViTVAE_GAN(LightningModule):
         self.landa =landa
         self.lr_discriminator = lr_discriminator
         self.lr = lr
+        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -448,7 +449,7 @@ class ViTVAE_GAN_prepared(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes=6,
+        num_classes = 4,
         dim=256,
         depth=4,
         heads=8,
@@ -459,6 +460,7 @@ class ViTVAE_GAN_prepared(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
+        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 10,
@@ -481,12 +483,14 @@ class ViTVAE_GAN_prepared(LightningModule):
                                    dropout=dropout,
                                    emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-029-1735/CViTVAE-epoch=174.ckpt"), strict=False)
         
+        
 
         # For now we will have a normal Discriminator; then I will change it to PatchGAN
         self.discriminator = Discriminator_DC()
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
+        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -649,7 +653,7 @@ class ViTVAE_PatchGAN(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes=6,
+        num_classes = 4,
         dim=256,
         depth=4,
         heads=8,
@@ -660,6 +664,7 @@ class ViTVAE_PatchGAN(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
+        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 1,
@@ -688,6 +693,7 @@ class ViTVAE_PatchGAN(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
+        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -847,7 +853,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes=6,
+        num_classes = 4,
         dim=256,
         depth=4,
         heads=8,
@@ -858,6 +864,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
+        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 1,
@@ -878,7 +885,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
                                    dim_head=dim_head,
                                    ngf=ngf,
                                    dropout=dropout,
-                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-029-1735/CViTVAE-epoch=174.ckpt"), strict=False)
+                                   emb_dropout=emb_dropout).load_state_dict(torch.load("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt"), strict=False)
 
         
      
@@ -889,6 +896,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
+        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -1026,7 +1034,7 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         self,
         image_size=(128,128),
         patch_size=16,
-        num_classes = 6,
+        num_classes = 4,
         dim=256,
         depth=4,
         heads=8,
@@ -1037,6 +1045,7 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         dropout=0.0,
         emb_dropout=0.0,
         landa = 100,
+        kl_weight=1e-5,
         lr=1e-4,
         lr_discriminator = 1e-4,
         frequency_generator = 1,
@@ -1067,6 +1076,7 @@ class ViTVAE_PatchGAN_prepared_GEN(LightningModule):
         self.landa =landa
         self.lr = lr
         self.lr_discriminator = lr_discriminator
+        self.kl_weight = kl_weight
         self.save_hyperparameters()
         self.freq_generator = frequency_generator
         self.freq_discriminator = frequency_discriminator
@@ -1509,7 +1519,7 @@ class ConvCVAE(LightningModule):
     def __init__(
         self,
         image_size=(128, 128),
-        num_classes=6,
+        num_classes=4,
         dim=256,
         channels=3,
         ngf=8,
@@ -1649,8 +1659,7 @@ class ConvCVAE(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         data, target = batch
-        target = target.to(torch.float)
-        recons_x, x, mu, log_var = self(data, target)
+        recons_x, x, mu, log_var = self(data)
         loss_dict = self.loss_function(recons_x, x, mu, log_var)
         self.log_dict({
             'val_loss': loss_dict['loss'],
@@ -1660,8 +1669,7 @@ class ConvCVAE(LightningModule):
     
     def test_step(self, batch, batch_idx):
         data, target = batch
-        target = target.to(torch.float)
-        recons_x, x, mu, log_var = self(data, target)
+        recons_x, x, mu, log_var = self(data)
         loss_dict = self.loss_function(recons_x, x, mu, log_var)
         self.log_dict({
             'test_loss': loss_dict['loss'],
@@ -1690,7 +1698,7 @@ class CViTVAE_2(LightningModule):
         self,
         image_size=(128, 128),
         patch_size=16,
-        num_classes=6,
+        num_classes=4,
         dim=256,
         depth=4,
         heads=8,
@@ -1828,10 +1836,6 @@ class CViTVAE_2(LightningModule):
         z = torch.cat([z, labels], dim = 1)
         samples = self.decoder(z)
         return samples
-    
-    def reconstruct(self,img,label):
-        reconstruction, img, _, _ = self(img,label)
-        return reconstruction, img
 
     def loss_function(self,recons_x, x, mu, log_var):
         """
@@ -1888,14 +1892,16 @@ class CViTVAE_2(LightningModule):
         }
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
-
-
+    
+    
+    
+    
 class CViTVAE(LightningModule):
     def __init__(
         self,
         image_size=(128, 128),
         patch_size=16,
-        num_classes=6,
+        num_classes=4,
         dim=256,
         depth=4,
         heads=8,
@@ -1905,6 +1911,8 @@ class CViTVAE(LightningModule):
         ngf=8,
         dropout=0.0,
         emb_dropout=0.0,
+        landa = 1000,
+        kl_weight=1e-5,
         lr=1e-4
     ):
         super().__init__()
@@ -1924,8 +1932,10 @@ class CViTVAE(LightningModule):
 
 
 
+        self.landa =landa
         self.lr = lr
         self.save_hyperparameters()
+        self.kl_weight = kl_weight
         self.dim = dim
 
 
@@ -1950,10 +1960,6 @@ class CViTVAE(LightningModule):
         z = torch.cat([z, labels], dim = 1)
         samples = self.generator.decoder(z)
         return samples
-    
-    def reconstruct(self,img,label):
-        reconstruction, img, _, _ = self(img,label)
-        return reconstruction, img
 
     def loss_function(self,recons_x, x, mu, log_var):
         """
@@ -2009,8 +2015,8 @@ class CViTVAE(LightningModule):
         }
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
-
-
+    
+    
 
 class Classifier(LightningModule):
     def __init__(self,
