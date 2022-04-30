@@ -97,7 +97,7 @@ if __name__ == "__main__":
     mlp_dim = 128
     lr = 5e-5
     patch_size = 16
-    batch_size = (256,)
+    batch_size = 256
     ngf = 8
 
     if args.name:
