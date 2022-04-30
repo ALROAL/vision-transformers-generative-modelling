@@ -484,7 +484,6 @@ class ViTVAE_GAN_prepared(LightningModule):
 
     def forward(self, img, labels):
         num_samples = img.shape[0]
-        print(num_samples)
         # # Generator
         out = self.generator.forward_2(img,labels, 1)
         real_label = self.discriminator(img)
@@ -526,17 +525,17 @@ class ViTVAE_GAN_prepared(LightningModule):
         gan_loss = self.adversarial_loss(fake_label, torch.zeros_like(fake_label))
         return {"loss": gan_loss}  
 
-    def loss_function(self,recons_x, x, mu, log_var):
-        """
-        Computes the VAE loss function.
-        """
-        recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
+    # def loss_function(self,recons_x, x, mu, log_var):
+    #     """
+    #     Computes the VAE loss function.
+    #     """
+    #     recons_loss = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
         
-        kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
+    #     kld_loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1)
     
-        loss = torch.mean(recons_loss + kld_loss, dim=0)
+    #     loss = torch.mean(recons_loss + kld_loss, dim=0)
         
-        return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
+    #     return {'loss': loss, 'Reconstruction_Loss':torch.mean(recons_loss.detach()), 'KLD':torch.mean(kld_loss.detach())}
 
 
     def training_step(self, batch, batch_idx, optimizer_idx):
@@ -591,12 +590,12 @@ class ViTVAE_GAN_prepared(LightningModule):
         loss_Generator = self.adversarial_loss(fake_label, torch.zeros_like(fake_label))
         self.log("GAN_loss validation fake image", loss_Generator["loss"])
 
-        loss_dict = self.loss_function(recons_x, x, mu, log_var)
-        self.log_dict({
-            'val_loss': loss_dict['loss'],
-            'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
-            'val_KLD': loss_dict['KLD']
-        })
+        # loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        # self.log_dict({
+        #     'val_loss': loss_dict['loss'],
+        #     'val_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+        #     'val_KLD': loss_dict['KLD']
+        # })
 
     def test_step(self, batch, batch_idx):
         data, target = batch
@@ -610,12 +609,12 @@ class ViTVAE_GAN_prepared(LightningModule):
         loss_Generator = self.adversarial_loss(fake_label, torch.zeros_like(fake_label))
         self.log("GAN_loss test fake image", loss_Generator["loss"])
 
-        loss_dict = self.loss_function(recons_x, x, mu, log_var)
-        self.log_dict({
-            'test_loss': loss_dict['loss'],
-            'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
-            'test_KLD': loss_dict['KLD']
-        })
+        # loss_dict = self.loss_function(recons_x, x, mu, log_var)
+        # self.log_dict({
+        #     'test_loss': loss_dict['loss'],
+        #     'test_Reconstruction_Loss': loss_dict['Reconstruction_Loss'],
+        #     'test_KLD': loss_dict['KLD']
+        # })
 
     def configure_optimizers(self):
         optimizer1 = optim.AdamW(self.generator.parameters(), lr=self.lr)
