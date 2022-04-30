@@ -1628,6 +1628,10 @@ class ConvCVAE(LightningModule):
         samples = self.decoder(z)
         return samples
 
+    def reconstruct(self, img, label):
+        reconstruction, img, _, _ = self(img,label)
+        return reconstruction, img
+
     def loss_function(self,recons_x, x, mu, log_var):
         """
         Computes the VAE loss function.
