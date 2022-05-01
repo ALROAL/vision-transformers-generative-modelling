@@ -190,6 +190,7 @@ def main(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='ViTVAE_PatchGAN_prepared-{epoch}',
             every_n_epochs = 25,
+            save_top_k = -1,
             auto_insert_metric_name=True,
             save_last=True
         )
@@ -207,13 +208,13 @@ def main(
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='ViTVAE_GAN_prepared-{epoch}',
-            monitor="val_loss",
-            mode="min",
-            save_top_k=1,
+            every_n_epochs = 25,
+            save_top_k = -1,
             auto_insert_metric_name=True,
+            save_last=True
         )
         early_stopping_callback = EarlyStopping(
-            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
+            monitor="train_loss", patience=1000, verbose=True, mode="min", strict=False
         )
 
     if model_type == "Classifier":
