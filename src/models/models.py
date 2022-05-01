@@ -1941,6 +1941,7 @@ class CViTVAE(LightningModule):
 
         z = torch.randn(num_samples, self.dim, device=label.device)
         z = torch.cat([z, label], dim = 1)
+        print("3",self.generator.device)
         samples = self.generator.decoder(z)
         return samples
     
@@ -2137,6 +2138,11 @@ class Classifier_with_generation(LightningModule):
         temp5 = torch.ones(int(temp[5])) * 5
         target_gen = F.one_hot(torch.cat((temp0,temp1,temp2,temp3,temp4,temp5)).to(torch.int64),num_classes=6)
         target_gen.to(target.device)
+
+        print("1",target_gen.device)
+        print("2",self.generator.device)
+
+
         img_gen = self.generator.sample_for_generation(num_samples=num_samples,label=target_gen)
         
         img = torch.cat([img,img_gen],dim=0)
