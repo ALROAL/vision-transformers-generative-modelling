@@ -1939,7 +1939,7 @@ class CViTVAE(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
+        z = torch.randn(num_samples, self.dim, device=label.device)
         z = torch.cat([z, label], dim = 1)
         samples = self.generator.decoder(z)
         return samples
@@ -2089,6 +2089,8 @@ class Classifier_with_generation(LightningModule):
             raise Exception("not implemented yet")
         else:
             raise Exception("generator name not recognized")
+        self.generator.freeze()
+        # self.generator.eval()
 
         # init a pretrained resnet
         backbone = models.convnext_tiny(pretrained=True)
