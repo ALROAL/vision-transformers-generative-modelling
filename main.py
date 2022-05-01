@@ -20,6 +20,7 @@ def main(
     patch_size: int = 16,
     batch_size: int = 256,
     ngf: int = 8,
+    generator: str = "ViTVAE"
 ):
     torch.cuda.empty_cache()
 
@@ -36,6 +37,7 @@ def main(
         patch_size=patch_size,
         batch_size=batch_size,
         ngf=ngf,
+        generator=generator
     )
 
 
