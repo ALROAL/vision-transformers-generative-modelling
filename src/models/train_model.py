@@ -37,20 +37,6 @@ def main(
 ):
     time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
 
-    # filename = "_".join(
-    #     [
-    #         str(p)
-    #         for p in [
-    #             model_type,
-    #             patch_size,
-    #             dim,
-    #             depth,
-    #             heads,
-    #             mlp_dim,
-    #             batch_size
-    #         ]
-    #     ]
-    # )
 
     if model_type == "ViT":
         model = ViT(
@@ -100,7 +86,6 @@ def main(
         )
 
     if model_type == "CViTVAE":
-        time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
         model = CViTVAE(
             image_size=(128, 128),
             patch_size=16,
