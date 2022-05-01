@@ -2104,7 +2104,7 @@ class Classifier_with_generation(LightningModule):
 
         #Generate images such that mini-batch has uniform class distribution
         num_samples = target.shape[0]
-        temp = F.relu(torch.ones(self.num_classes)*int(num_samples*2/self.num_classes) - torch.bincount(target.argmax(dim=1)), inplace=True)
+        temp = F.relu(torch.ones(self.num_classes,device=target.device)*int(num_samples*2/self.num_classes) - torch.bincount(target.argmax(dim=1)), inplace=True)
         if torch.sum(temp) < num_samples:
             temp[temp.argmax()] += num_samples-torch.sum(temp)
         elif torch.sum(temp) > num_samples:
@@ -2121,6 +2121,7 @@ class Classifier_with_generation(LightningModule):
         temp4 = torch.ones(int(temp[4])) * 4
         temp5 = torch.ones(int(temp[5])) * 5
         target_gen = F.one_hot(torch.cat((temp0,temp1,temp2,temp3,temp4,temp5)).to(torch.int64),num_classes=6)
+        target_gen.to(target.device)
         img_gen = self.generator.sample(num_samples=num_samples,label=target_gen)
         
         img = torch.cat([img,img_gen],dim=0)
