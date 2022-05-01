@@ -2090,7 +2090,6 @@ class Classifier_with_generation(LightningModule):
         else:
             raise Exception("generator name not recognized")
         self.generator.freeze()
-        # self.generator.eval()
 
         # init a pretrained resnet
         backbone = models.convnext_tiny(pretrained=True)
@@ -2143,7 +2142,7 @@ class Classifier_with_generation(LightningModule):
         img = torch.cat([img,img_gen],dim=0)
         target = torch.cat([target,target_gen],dim=0)
 
-        pred = self(data)
+        pred = self(img)
         loss = self.loss_function(pred,target)
         self.log("train_loss",loss)
         acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
