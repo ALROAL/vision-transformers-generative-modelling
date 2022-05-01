@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier, Classifier_with_generation
 
 
 def main(
@@ -231,10 +231,26 @@ def main(
             monitor="val_loss", patience=20, verbose=True, mode="min", strict=False
         )
 
+
+    if model_type == "Classifier_gen":
+        model = Classifier_with_generation(lr=lr, generator="ViTVAE")
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='Classifier-{epoch}',
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            auto_insert_metric_name=True,
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="val_loss", patience=20, verbose=True, mode="min", strict=False
+        )
+
+
+
+    if "Classifier" in model_type:
         celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers,classify=True)
-
-
-    if model_type != "Classifier":
+    else:
         celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")

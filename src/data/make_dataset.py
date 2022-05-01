@@ -57,7 +57,6 @@ class DebuggedCelebA(CelebA):
                     else:
                         return torch.tensor([0,0,0,1,0,0]) # Blond Female
                     
-                # return target[[col_idx_1,col_idx_2,col_idx_3,col_idx_4]]
         
         super().__init__(
             root, split, target_type, transform, target_transform, download
@@ -144,14 +143,6 @@ class CelebADataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=True,
         )
-
-    # def predict_dataloader(self):
-    #     return DataLoader(
-    #         self.celeb_predict,
-    #         batch_size=self.batch_size,
-    #         num_workers=self.num_workers,
-    #         pin_memory=True,
-    #     )
 
 
 class MNISTDataModule(pl.LightningDataModule):
