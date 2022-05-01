@@ -1601,7 +1601,7 @@ class ConvCVAE(LightningModule):
 
         z = torch.randn(num_samples, self.dim, device=label.device)
         z = torch.cat([z, label], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.decoder(z)
         return samples
 
     def reconstruct(self, img, label):
