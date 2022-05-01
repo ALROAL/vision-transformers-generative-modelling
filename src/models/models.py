@@ -1591,6 +1591,19 @@ class ConvCVAE(LightningModule):
         samples = self.decoder(z)
         return samples
 
+    def sample_for_generation(self, num_samples, label):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :return: (Tensor)
+        """
+
+        z = torch.randn(num_samples, self.dim, device=label.device)
+        z = torch.cat([z, label], dim = 1)
+        samples = self.generator.decoder(z)
+        return samples
+
     def reconstruct(self, img, label):
         reconstruction, img, _, _ = self(img,label)
         return reconstruction, img

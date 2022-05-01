@@ -32,7 +32,8 @@ def main(
     ngf: int = 8,
     kl_weight : int = 1e-5,
     frequency_generator: int = 1,
-    frequency_discriminator:int = 1
+    frequency_discriminator:int = 1,
+    generator:str = "ViTVAE"
 ):
     time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
 
@@ -233,7 +234,7 @@ def main(
 
 
     if model_type == "Classifier_gen":
-        model = Classifier_with_generation(lr=lr, generator="ViTVAE")
+        model = Classifier_with_generation(lr=lr, generator=generator)
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='Classifier-{epoch}',
