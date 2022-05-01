@@ -857,7 +857,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
 
 
         self.generator = CViTVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
-     
+        # self.generator = CViTVAE().load_from_checkpoint("F:\Vision-transformers-for-generative-modeling\models\CViTVAE2022-04-29-1735\CViTVAE-epoch=174.ckpt")
         
 
         # For now we will have a normal Discriminator; then I will change it to PatchGAN
@@ -893,10 +893,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
-        labels = repeat(label, "d -> n d",n=num_samples)
-        z = torch.cat([z, labels], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.generator.sample(num_samples=num_samples,label=label)
         return samples
 
     def discriminator_loss(self, real_label, fake_label):
