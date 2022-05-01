@@ -87,7 +87,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--gen",
-        type=int,
+        type=str,
         help="Which generator should be use to generate image for the classifier",
     )
     args = parser.parse_args()
