@@ -29,4 +29,5 @@ source aml/bin/activate
 
 #python3 main.py --name ViTCVAE_R --model-type ViTCVAE_R --dim 256 --mlp_dim 256 --batch_size 64 --ngf 32 --max-epochs 100 --num-workers 8 >| outputs/ViTCVAE_R.out 2>| error/ViTCVAE_R.err
 
-python3 main.py --name ViTVAE_GAN_prepared_batch128 --model-type ViTVAE_GAN_prepared --batch_size 128 --max-epochs 200 --num-workers 8 >| outputs/CViTVAE_29_04_batch128.out 2>| error/ViTVAE_GAN_prepared_batch128.err
+python3 main.py --name ViTVAE_GAN_batch64 --model-type ViTVAE_GAN --batch_size 64 --max-epochs 200 --num-workers 8 >| outputs/ViTVAE_GAN_2_05_batch64.out 2>| error/ViTVAE_GAN_2_05_batch64
+.err

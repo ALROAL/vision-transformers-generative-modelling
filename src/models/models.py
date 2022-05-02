@@ -281,9 +281,15 @@ class ViTVAE_GAN(LightningModule):
 
     def forward(self, img, labels):
         # # Generator
+        
         out, mean, log_var = self.generator(img,labels)
+        #print("the output image is",out)
+        print("the mean is",mean)
+        print("the log var is",log_var)
         real_label = self.discriminator(img)
         fake_label = self.discriminator(out)
+        print("the real label is",real_label)
+        print("the fake label is", fake_label)
 
         return out, img, mean, log_var, real_label, fake_label
     
@@ -305,23 +311,29 @@ class ViTVAE_GAN(LightningModule):
 
 
     def adversarial_loss(self, y_hat, y):
+        print("the y is",y)
+        print("the y hat  is",y_hat)
         loss_object = nn.BCEWithLogitsLoss()
+        print("the  loss is",loss_object(y_hat, y))
         return {"loss" : loss_object(y_hat, y)}
 
     def discriminator_loss(self, real_label, fake_label):
         # Loss with the real image
         real_loss = self.adversarial_loss(real_label, torch.ones_like(real_label))
+        print("loss of real image", real_loss)
         # Loss with the generated image
         generated_loss = self.adversarial_loss(fake_label, torch.zeros_like(real_label))
+        print("loss of fake image",generated_loss)
 
         return {"loss_real":real_loss, "loss_fake":generated_loss}
 
     def generator_loss(self,fake_label, out, img):
         # Want to make the answer of the discriminator all close to zero
-        gan_loss = self.adversarial_loss(fake_label, torch.zeros_like(fake_label))
+        gan_loss = self.adversarial_loss(fake_label, torch.ones_like(fake_label))
         #difference in image 
         #loss_l1 = torch.sum(F.mse_loss(recons_x.view(recons_x.shape[0],-1), x.view(x.shape[0],-1),reduction="none"),dim=1)
         total = gan_loss  #+ (self.landa * loss_l1) 
+        print("total loss of generator",total)
         return {"loss":total}  
 
     def loss_function(self,recons_x, x, mu, log_var):
@@ -520,7 +532,7 @@ class ViTVAE_GAN_prepared(LightningModule):
 
     def generator_loss(self,fake_label, out, img):
         # Want to make the answer of the discriminator all close to zero
-        gan_loss = self.adversarial_loss(fake_label, torch.zeros_like(fake_label))
+        gan_loss = self.adversarial_loss(fake_label, torch.ones_like(fake_label))
         return {"loss": gan_loss}  
 
     # def loss_function(self,recons_x, x, mu, log_var):
@@ -617,17 +629,8 @@ class ViTVAE_GAN_prepared(LightningModule):
     def configure_optimizers(self):
         optimizer1 = optim.AdamW(self.generator.parameters(), lr=self.lr)
         optimizer2 = optim.AdamW(self.discriminator.parameters(), lr = self.lr_discriminator)
-        lr_scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1, patience=6)
-        lr_scheduler_config_1 = {
-            "scheduler": lr_scheduler1,
-            "interval": "epoch",
-            "monitor": "val_loss",}
-        lr_scheduler2 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2, patience=6)
-        lr_scheduler_config_2 = {
-            "scheduler": lr_scheduler2,
-            "interval": "epoch",
-            "monitor": "val_loss",}
-        return [ optimizer1, optimizer2, optimizer2], [lr_scheduler_config_1,lr_scheduler_config_2]
+
+        return [ optimizer1, optimizer2, optimizer2]#, [lr_scheduler_config_1,lr_scheduler_config_2]
         
 ################################################################################################################################
 
