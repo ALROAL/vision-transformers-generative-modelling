@@ -283,13 +283,9 @@ class ViTVAE_GAN(LightningModule):
         # # Generator
         
         out, mean, log_var = self.generator(img,labels)
-        #print("the output image is",out)
-        print("the mean is",mean)
-        print("the log var is",log_var)
+
         real_label = self.discriminator(img)
         fake_label = self.discriminator(out)
-        print("the real label is",real_label)
-        print("the fake label is", fake_label)
 
         return out, img, mean, log_var, real_label, fake_label
     
@@ -311,19 +307,14 @@ class ViTVAE_GAN(LightningModule):
 
 
     def adversarial_loss(self, y_hat, y):
-        print("the y is",y)
-        print("the y hat  is",y_hat)
         loss_object = nn.BCEWithLogitsLoss()
-        print("the  loss is",loss_object(y_hat, y))
         return {"loss" : loss_object(y_hat, y)}
 
     def discriminator_loss(self, real_label, fake_label):
         # Loss with the real image
         real_loss = self.adversarial_loss(real_label, torch.ones_like(real_label))
-        print("loss of real image", real_loss)
         # Loss with the generated image
         generated_loss = self.adversarial_loss(fake_label, torch.zeros_like(real_label))
-        print("loss of fake image",generated_loss)
 
         return {"loss_real":real_loss, "loss_fake":generated_loss}
 
@@ -369,7 +360,7 @@ class ViTVAE_GAN(LightningModule):
             # generate images
             recons_x, x, mu, log_var, real_label, fake_label = self(data, target)
 
-            loss_dict = self.adversarial_loss(fake_label, torch.zeros_like(fake_label))
+            loss_dict = self.adversarial_loss(fake_label, torch.ones_like(fake_label))
             #self.log("Generator Traning Loss - Generator error",loss_dict)
             self.log("Generator Traning Loss - GAN error", loss_dict["loss"])
             return loss_dict["loss"]
