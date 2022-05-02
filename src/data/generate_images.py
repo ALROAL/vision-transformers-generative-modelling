@@ -1,7 +1,7 @@
 from torchvision.utils import save_image
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.models.models import CViTVAE, ConvCVAE
-
+import torch
 
 if __name__ == "__main__":
     # model = CViTVAE.load_from_checkpoint(_PATH_MODELS+"/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
