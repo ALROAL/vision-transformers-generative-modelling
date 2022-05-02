@@ -195,8 +195,6 @@ def main(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='ViTVAE_GAN_prepared-{epoch}',
             every_n_epochs = 25,
-<<<<<<< HEAD
-=======
             save_top_k = -1,
             auto_insert_metric_name=True,
             save_last=True
@@ -213,7 +211,6 @@ def main(
             monitor="val_loss",
             mode="min",
             save_top_k=1,
->>>>>>> 7eed8845c2ec15a7ae1a11da0ce6cc159e21899b
             auto_insert_metric_name=True,
             save_last=True
         )
