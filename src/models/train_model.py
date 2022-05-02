@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
 from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier, Classifier_with_generation
 
 
 def main(
@@ -32,24 +32,11 @@ def main(
     ngf: int = 8,
     kl_weight : int = 1e-5,
     frequency_generator: int = 1,
-    frequency_discriminator:int = 1
+    frequency_discriminator:int = 1,
+    generator:str = "ViTVAE"
 ):
     time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
 
-    # filename = "_".join(
-    #     [
-    #         str(p)
-    #         for p in [
-    #             model_type,
-    #             patch_size,
-    #             dim,
-    #             depth,
-    #             heads,
-    #             mlp_dim,
-    #             batch_size
-    #         ]
-    #     ]
-    # )
 
     if model_type == "ViT":
         model = ViT(
@@ -99,7 +86,6 @@ def main(
         )
 
     if model_type == "CViTVAE":
-        time = str(datetime.datetime.now())[:-10].replace(" ","-").replace(":","")
         model = CViTVAE(
             image_size=(128, 128),
             patch_size=16,
@@ -190,6 +176,7 @@ def main(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='ViTVAE_PatchGAN_prepared-{epoch}',
             every_n_epochs = 25,
+            save_top_k = -1,
             auto_insert_metric_name=True,
             save_last=True
         )
@@ -208,15 +195,35 @@ def main(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='ViTVAE_GAN_prepared-{epoch}',
             every_n_epochs = 25,
+<<<<<<< HEAD
+=======
+            save_top_k = -1,
             auto_insert_metric_name=True,
             save_last=True
         )
         early_stopping_callback = EarlyStopping(
-            monitor="train_loss", patience=15, verbose=True, mode="min", strict=False
+            monitor="train_loss", patience=1000, verbose=True, mode="min", strict=False
         )
 
     if model_type == "Classifier":
         model = Classifier(lr=lr)
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=_PATH_MODELS + "/" + model_type + time,
+            filename='Classifier-{epoch}',
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+>>>>>>> 7eed8845c2ec15a7ae1a11da0ce6cc159e21899b
+            auto_insert_metric_name=True,
+            save_last=True
+        )
+        early_stopping_callback = EarlyStopping(
+            monitor="val_loss", patience=20, verbose=True, mode="min", strict=False
+        )
+
+
+    if model_type == "Classifier_gen":
+        model = Classifier_with_generation(lr=lr, generator=generator)
         checkpoint_callback = ModelCheckpoint(
             dirpath=_PATH_MODELS + "/" + model_type + time,
             filename='Classifier-{epoch}',
@@ -229,10 +236,11 @@ def main(
             monitor="val_loss", patience=20, verbose=True, mode="min", strict=False
         )
 
+
+
+    if "Classifier" in model_type:
         celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers,classify=True)
-
-
-    if model_type != "Classifier":
+    else:
         celeb = CelebADataModule(batch_size=batch_size, num_workers=num_workers)
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")

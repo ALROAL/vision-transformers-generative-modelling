@@ -20,6 +20,7 @@ def main(
     patch_size: int = 16,
     batch_size: int = 256,
     ngf: int = 8,
+    generator: str = "ViTVAE"
 ):
     torch.cuda.empty_cache()
 
@@ -36,6 +37,7 @@ def main(
         patch_size=patch_size,
         batch_size=batch_size,
         ngf=ngf,
+        generator=generator
     )
 
 
@@ -85,6 +87,11 @@ if __name__ == "__main__":
         type=int,
         help="affects size of decoder",
     )
+    parser.add_argument(
+        "--gen",
+        type=str,
+        help="Which generator should be use to generate image for the classifier",
+    )
     args = parser.parse_args()
 
     name = "test"
@@ -99,6 +106,7 @@ if __name__ == "__main__":
     patch_size = 16
     batch_size = 256
     ngf = 8
+    generator = "ViTVAE"
 
     if args.name:
         name = args.name
@@ -124,6 +132,8 @@ if __name__ == "__main__":
         batch_size = args.batch_size
     if args.ngf:
         ngf = args.ngf
+    if args.gen:
+        generator = args.gen
 
     main(
         name=name,
@@ -138,4 +148,5 @@ if __name__ == "__main__":
         patch_size=patch_size,
         batch_size=batch_size,
         ngf=ngf,
+        generator=generator
     )
