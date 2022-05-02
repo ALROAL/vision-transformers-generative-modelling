@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
-from torchvision.datasets import CIFAR10, MNIST, CelebA
+from torchvision.datasets import  MNIST, CelebA
 
 from src import _PATH_DATA
 

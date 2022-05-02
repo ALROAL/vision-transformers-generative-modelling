@@ -12,8 +12,8 @@ from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from src import _PATH_DATA, _PATH_MODELS, _PROJECT_ROOT
-from src.data.make_dataset import CelebADataModule, CIFARDataModule
-from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier, Classifier_with_generation
+from src.data.make_dataset import CelebADataModule #, CIFARDataModule
+from src.models.models import ViT, CViTVAE, ViTVAE, ConvCVAE, ViTVAE_GAN, ViTVAE_PatchGAN, ViTVAE_PatchGAN_prepared, ViTVAE_GAN_prepared, Classifier#, Classifier_with_generation
 
 
 def main(
