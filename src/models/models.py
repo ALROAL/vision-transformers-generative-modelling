@@ -469,6 +469,7 @@ class ViTVAE_GAN_prepared(LightningModule):
 
 
         self.generator = CViTVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
+        # self.generator = CViTVAE().load_from_checkpoint("F:\Vision-transformers-for-generative-modeling\models\CViTVAE2022-04-29-1735\CViTVAE-epoch=174.ckpt")
         
 
         # For now we will have a normal Discriminator; then I will change it to PatchGAN
@@ -499,10 +500,7 @@ class ViTVAE_GAN_prepared(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
-        labels = repeat(label, "d -> n d",n=num_samples)
-        z = torch.cat([z, labels], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.generator.sample(num_samples=num_samples,label=label)
         return samples
 
 
@@ -700,10 +698,7 @@ class ViTVAE_PatchGAN(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
-        labels = repeat(label, "d -> n d",n=num_samples)
-        z = torch.cat([z, labels], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.generator.sample(num_samples=num_samples,label=label)
         return samples
 
     def discriminator_loss(self, real_label, fake_label):
@@ -1574,6 +1569,15 @@ class ConvCVAE(LightningModule):
         x = self.decoder(z)
 
         return x, img, mean, log_var
+
+    def forward_2(self,img, num_samples):
+        z = torch.randn(num_samples, self.dim, device=img.device)
+        label = F.one_hot(torch.randint(0,self.num_classes-1,(num_samples,),device=img.device),num_classes=self.num_classes) #Generate random labels uniformly
+
+        z = torch.cat([z, label], dim = 1)
+        recons_img = self.generator.decoder(z)
+
+        return recons_img
     
 
 
@@ -2095,8 +2099,10 @@ class Classifier_with_generation(LightningModule):
         
         if generator == "ViTVAE":
             self.generator = CViTVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
+            # self.generator = CViTVAE().load_from_checkpoint("F:\Vision-transformers-for-generative-modeling\models\CViTVAE2022-04-29-1735\CViTVAE-epoch=174.ckpt")
         elif generator == "ConvVAE":
             self.generator = ConvCVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/ConvCVAE2022-04-30-1854/ConvCVAE-epoch=349.ckpt")
+            # self.generator = ConvCVAE().load_from_checkpoint("F:\Vision-transformers-for-generative-modeling\models\ConvCVAE2022-04-30-1854\ConvCVAE-epoch=349.ckpt")
         elif generator == "GAN":
             self.generator = None #Todo
             raise Exception("not implemented yet")
