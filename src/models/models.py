@@ -511,10 +511,7 @@ class ViTVAE_GAN_prepared(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
-        labels = repeat(label, "d -> n d",n=num_samples)
-        z = torch.cat([z, labels], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.generator.sample(num_samples=num_samples,label=label)
         return samples
 
 
@@ -703,10 +700,7 @@ class ViTVAE_PatchGAN(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
-        labels = repeat(label, "d -> n d",n=num_samples)
-        z = torch.cat([z, labels], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.generator.sample(num_samples=num_samples,label=label)
         return samples
 
     def discriminator_loss(self, real_label, fake_label):
@@ -894,10 +888,7 @@ class ViTVAE_PatchGAN_prepared(LightningModule):
         :return: (Tensor)
         """
 
-        z = torch.randn(num_samples, self.dim)
-        labels = repeat(label, "d -> n d",n=num_samples)
-        z = torch.cat([z, labels], dim = 1)
-        samples = self.generator.decoder(z)
+        samples = self.generator.sample(num_samples=num_samples,label=label)
         return samples
 
     def discriminator_loss(self, real_label, fake_label):
@@ -1581,6 +1572,15 @@ class ConvCVAE(LightningModule):
 
         return x, img, mean, log_var
     
+    def forward_2(self,img, num_samples):
+        z = torch.randn(num_samples, self.dim, device=img.device)
+        label = F.one_hot(torch.randint(0,5,(num_samples,),device=img.device),num_classes=6) #Generate random labels uniformly
+
+        z = torch.cat([z, label], dim = 1)
+        recons_img = self.decoder(z)
+
+        return recons_img
+    
 
 
     def sample(self, num_samples, label):
@@ -1594,6 +1594,19 @@ class ConvCVAE(LightningModule):
         z = torch.randn(num_samples, self.dim)
         labels = repeat(label, "d -> n d",n=num_samples)
         z = torch.cat([z, labels], dim = 1)
+        samples = self.decoder(z)
+        return samples
+
+    def sample_for_generation(self, num_samples, label):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :return: (Tensor)
+        """
+
+        z = torch.randn(num_samples, self.dim, device=label.device)
+        z = torch.cat([z, label], dim = 1)
         samples = self.decoder(z)
         return samples
 
@@ -1936,6 +1949,19 @@ class CViTVAE(LightningModule):
         z = torch.cat([z, labels], dim = 1)
         samples = self.generator.decoder(z)
         return samples
+
+        def sample_for_generation(self, num_samples, label):
+            """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :return: (Tensor)
+        """
+
+        z = torch.randn(num_samples, self.dim, device=label.device)
+        z = torch.cat([z, label], dim = 1)
+        samples = self.generator.decoder(z)
+        return samples
     
     def reconstruct(self,img,label):
         reconstruction, img, _, _ = self(img,label)
@@ -2064,4 +2090,113 @@ class Classifier(LightningModule):
             "strict": False,
         }
 
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+
+class Classifier_with_generation(LightningModule):
+    def __init__(self,
+                 lr:float = 1e-4,
+                 generator:str = "ViTVAE"):
+        super().__init__()
+
+        if generator == "ViTVAE":
+            self.generator = CViTVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/CViTVAE2022-04-29-1735/CViTVAE-epoch=174.ckpt")
+            # self.generator = CViTVAE().load_from_checkpoint("F:\Vision-transformers-for-generative-modeling\models\CViTVAE2022-04-29-1735\CViTVAE-epoch=174.ckpt")
+        elif generator == "ConvVAE":
+            self.generator = ConvCVAE().load_from_checkpoint("/work3/s164564/Vision-transformers-for-generative-modeling/models/ConvCVAE2022-04-30-1854/ConvCVAE-epoch=349.ckpt")
+            # self.generator = ConvCVAE().load_from_checkpoint("F:\Vision-transformers-for-generative-modeling\models\ConvCVAE2022-04-30-1854\ConvCVAE-epoch=349.ckpt")
+        elif generator == "GAN":
+            self.generator = None #Todo
+            raise Exception("not implemented yet")
+        else:
+            raise Exception("generator name not recognized")
+        self.generator.freeze()
+
+        # init a pretrained resnet
+        backbone = models.convnext_tiny(pretrained=True)
+        layers = list(backbone.children())[:-1]
+        self.feature_extractor = nn.Sequential(*layers)
+
+        self.num_classes = 6
+        self.classifier = nn.Sequential(
+            models.convnext.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True), nn.Flatten(1), nn.Linear(768, self.num_classes)
+        )
+        self.loss_function = nn.CrossEntropyLoss()
+        self.lr = lr
+        self.save_hyperparameters()
+
+    def forward(self, x):
+        # Generate images 
+        self.feature_extractor.eval()
+        with torch.no_grad():
+            representations = self.feature_extractor(x)
+        x = self.classifier(representations)
+        return x.softmax(dim=1)
+
+    def training_step(self, batch, batch_idx):
+        img, target = batch
+        target = target.to(torch.float)
+
+        #Generate images such that mini-batch has uniform class distribution
+        num_samples = target.shape[0]
+        temp = F.relu(torch.ones(self.num_classes,device=target.device)*int(num_samples*2/self.num_classes) - torch.bincount(target.argmax(dim=1)), inplace=True)
+        if torch.sum(temp) < num_samples:
+            temp[temp.argmax()] += num_samples-torch.sum(temp)
+        elif torch.sum(temp) > num_samples:
+            nonzero_idx = temp.nonzero().flatten()
+            diff = int((torch.sum(temp) - num_samples) / len(nonzero_idx))
+            for i in nonzero_idx:
+                temp[i] -= diff
+            if torch.sum(temp) > num_samples:
+                temp[temp.argmax()] -= torch.sum(temp) - num_samples
+        temp0 = torch.ones(int(temp[0])) * 0
+        temp1 = torch.ones(int(temp[1])) * 1
+        temp2 = torch.ones(int(temp[2])) * 2
+        temp3 = torch.ones(int(temp[3])) * 3
+        temp4 = torch.ones(int(temp[4])) * 4
+        temp5 = torch.ones(int(temp[5])) * 5
+        target_gen = F.one_hot(torch.cat((temp0,temp1,temp2,temp3,temp4,temp5)).to(torch.int64),num_classes=6)
+        target_gen = target_gen.to(target.device)
+
+        img_gen = self.generator.sample_for_generation(num_samples=num_samples,label=target_gen)
+
+        img = torch.cat([img,img_gen],dim=0)
+        target = torch.cat([target,target_gen],dim=0)
+
+        pred = self(img)
+        loss = self.loss_function(pred,target)
+        self.log("train_loss",loss)
+        acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
+        self.log("Train Accuracy", acc)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        pred = self(data)
+        loss = self.loss_function(pred,target)
+        self.log("val_loss", loss)
+        acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
+        self.log("Validation Accuracy", acc)
+
+    def test_step(self, batch, batch_idx):
+        data, target = batch
+        target = target.to(torch.float)
+        pred = self(data)
+        loss = self.loss_function(pred,target)
+        self.log("test_loss", loss)
+        acc = torch.sum(pred.argmax(dim=1) == target.argmax(dim=1))/len(target)
+        self.log("Test Accuracy", acc)
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        return self(batch.argmax(dim=1))
+
+    def configure_optimizers(self):
+        optimizer = optim.AdamW(self.parameters(), lr=self.lr)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5,factor=0.5)
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "interval": "epoch",
+            "monitor": "val_loss",
+            "strict": False,
+        }
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
