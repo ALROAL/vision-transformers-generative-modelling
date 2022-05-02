@@ -1572,7 +1572,7 @@ class ConvCVAE(LightningModule):
 
     def forward_2(self,img, num_samples):
         z = torch.randn(num_samples, self.dim, device=img.device)
-        label = F.one_hot(torch.randint(0,self.num_classes-1,(num_samples,),device=img.device),num_classes=self.num_classes) #Generate random labels uniformly
+        label = F.one_hot(torch.randint(0,5,(num_samples,),device=img.device),num_classes=6) #Generate random labels uniformly
 
         z = torch.cat([z, label], dim = 1)
         recons_img = self.generator.decoder(z)
