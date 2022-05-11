@@ -180,9 +180,9 @@ def main(
             auto_insert_metric_name=True,
             save_last=True
         )
-        early_stopping_callback = EarlyStopping(
-            monitor="train_loss", patience=1000, verbose=True, mode="min", strict=False
-        )
+       # early_stopping_callback = EarlyStopping(
+       #     monitor="train_loss", patience=1000, verbose=True, mode="min", strict=False
+       # )
         
     if model_type == "ViTVAE_GAN_prepared":
         model = ViTVAE_GAN_prepared(
@@ -199,9 +199,9 @@ def main(
             auto_insert_metric_name=True,
             save_last=True
         )
-        early_stopping_callback = EarlyStopping(
-            monitor="train_loss", patience=1000, verbose=True, mode="min", strict=False
-        )
+        #early_stopping_callback = EarlyStopping(
+        #    monitor="train_loss", patience=1000, verbose=True, mode="min", strict=False
+        #)
 
     if model_type == "Classifier":
         model = Classifier(lr=lr)
@@ -252,7 +252,8 @@ def main(
         precision=16,
         deterministic=False,
         default_root_dir=_PROJECT_ROOT,
-        callbacks=[checkpoint_callback, early_stopping_callback, lr_monitor],
+        callbacks=[checkpoint_callback,lr_monitor],
+        #callbacks=[checkpoint_callback, early_stopping_callback, lr_monitor],
         auto_lr_find=False,
         auto_scale_batch_size=False,
         auto_select_gpus=True,
