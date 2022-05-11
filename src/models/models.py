@@ -221,8 +221,17 @@ class Generator(nn.Module):
 
         return recons_img
         
-    
-    
+    def encoding(self,img,labels):
+        label_embeddings = self.label_embedding(labels)
+        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
+        x = torch.cat([img,label_embeddings],dim = 1)
+        x = self.encoder(x)
+
+        mean = x[:, 0]
+        log_var = x[:, 1]
+
+        z = self.reparameterize(mean, log_var)
+        return z
 
     
 
@@ -1572,6 +1581,19 @@ class ConvCVAE(LightningModule):
 
         return recons_img
     
+    def encoding(self,img,labels):
+        label_embeddings = self.label_embedding(labels)
+        label_embeddings = label_embeddings.view(-1,self.image_height,self.image_width).unsqueeze(1)
+        x = torch.cat([img,label_embeddings], dim = 1)
+        x = self.encoder(x)
+
+        x = torch.flatten(x, start_dim=1)
+
+        mean = self.mean(x)
+        log_var = self.log_var(x)
+
+        z = self.reparameterize(mean, log_var)
+        return z
 
 
     def sample(self, num_samples, label):
@@ -1600,6 +1622,15 @@ class ConvCVAE(LightningModule):
         z = torch.cat([z, label], dim = 1)
         samples = self.decoder(z)
         return samples
+
+    def sample_latent_space(self,num_samples,label):
+        z = torch.randn(num_samples, self.dim)
+        labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, labels], dim = 1)
+
+        z = self.decoder_input(z)
+        # samples = self.decoder(z)
+        return z
 
     def reconstruct(self, img, label):
         reconstruction, img, _, _ = self(img,label)
@@ -1925,6 +1956,8 @@ class CViTVAE(LightningModule):
 
         return recons_img
 
+    def encoding(self,img,labels):
+        return self.generator.encoding(img,labels)
     
 
     def sample(self, num_samples, label):
@@ -1953,6 +1986,15 @@ class CViTVAE(LightningModule):
         z = torch.cat([z, label], dim = 1)
         samples = self.generator.decoder(z)
         return samples
+
+    def sample_latent_space(self,num_samples,label):
+        z = torch.randn(num_samples, self.dim)
+        labels = repeat(label, "d -> n d",n=num_samples)
+        z = torch.cat([z, labels], dim = 1)
+
+        z = self.generator.decoder_input(z)
+        # samples = self.generator.decoder(z)
+        return z
     
     def reconstruct(self,img,label):
         reconstruction, img, _, _ = self(img,label)
