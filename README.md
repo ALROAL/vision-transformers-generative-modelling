@@ -1,57 +1,31 @@
-Vision transformers for generative modeling
+Vision Transformers for Generative Modelling
 ==============================
 
-Project for 02460 Advanced Machine Learning 2022. About Attention-based architectures for Generative models
+![test results](https://i.imgur.com/grlnFxo.png)
 
-File Structure
-------------
+The aim of this project is to explore the potential of Vision Transformers within the field of generative modelling by comparing the image reconstruction results and performance as generators of CNN-based Conditional Variational Auto-Encoder (CVAE) and ViTbased CVAE models combined with a GAN training for the data augmentation process in an image classification task on CelebFaces Attributes Dataset (CelebA).
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
+- [Quick start](#quick-start)
+- [Description](#description)
+- [Usage](#usage)
+- [Weights & Biases](#weights--biases)
 
+## Quick start
 
---------
+1. Install dependencies
+```bash
+pip install -r requirements.txt -f https://download.pytorch.org/whl/cu113/torch_stable.html
+```
+2. Download data directly from Kaggle [CelebFaces Attributes (CelebA) Dataset](https://www.kaggle.com/datasets/jessicali9530/celeba-dataset) to a ```data``` folder in the project's directory or using DVC to download a zip file and unzip it (this will create the ```data``` folder in the project's directory).
+```bash
+dvc pull
+unzip data.zip
+```
+Note: The DVC option might not be available due to the removal of the data from Google drive.
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+## Description
+A CVAE using ViT in the encoder was designed, and a traditional fully convolution based CVAE was implemented. Initially, both the CNN-based CVAE and ViT-based CVAE generative models were trained. Then, the best performing model of each architecture evaluated on the test split was chosen. The chosen models were then used as the generator in a GAN structure and trained in an attempt to improve the visual quality of the generators. A pre-trained CNN-based classifier was fine-tuned on the training set as a baseline, additional classifiers, one for each generator, were fine-tuned with synthetic data from sampling the latent space distribution of the generators. The synthetic data was sampled in a manner such that each mini-batch had balanced classes, i.e. more images were generated of classes with low representation in the training
+set. The performance of the classifiers were evaluated on overall and individual class accuracy to determine the suitability of Vision Transformers within generative modelling.
+
+![network architecture](https://i.imgur.com/jeDVpqF.png)
+## Results

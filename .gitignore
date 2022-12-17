@@ -99,9 +99,8 @@ target/
 /logs
 /lightning_logs
 /notebooks/testing.ipynb
-/aml
+/venv
 /notebooks/wandb
 /data.zip
 /data
 
-submit_r.sh
