@@ -39,4 +39,4 @@ Comparison of overall and class accuracy of classifiers using synthetic data fro
 ![vit-cvae table results](https://imgur.com/1J7Mwug.png)
 
 ## Report
-Have a look to the complete [Report - Vision Transformers for Generative Modelling](Report - Vision Transformers for Generative Modelling.pdf) with detailed information regarding the theoretical background, implementations, methodology and results.
+Have a look to the complete [Report of Vision Transformers for Generative Modelling](Report_Vision_Transformers_Generative_Modelling.pdf) with detailed information regarding the theoretical background, implementations, methodology and results.
